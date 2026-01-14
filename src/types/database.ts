@@ -20,3 +20,18 @@ export interface DatabaseConfiguration {
     tables: DatabaseTable[];
 }
 
+export interface TestUser {
+    details: {
+        name: string;
+        email: string;
+        password: string;
+    };
+    account: {
+        name: string;
+        description: string;
+    };
+    role: {
+        name: string;
+    };
+}
+
