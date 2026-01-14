@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
+import Settings from "@/components/settings";
 
 // Exports
 
@@ -15,6 +16,7 @@ export default function Home() {
   const [content, setContent] = useState<React.ReactNode>(<div>Home</div>);
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -36,6 +38,11 @@ export default function Home() {
 
   return (
     <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['row-container']} ${styles['content-start']} ${styles['align-stretch']}`}>
+
+      {showSettings && (
+        <Settings setup={{ onClose: () => setShowSettings(false) }} />
+      )}
+
       <ul className={`${styles['width-200']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['primary-background']} ${styles['text-center']}`}>
         <li className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['pd-all-round']}`}>
           <img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} />
@@ -63,7 +70,12 @@ export default function Home() {
               </option>
             ))}
           </select>
-          <img src="assets/settings.png" alt="Settings" className={`${styles['icon-structure']} ${styles['margin-left']} ${styles['clickable']}`} />
+          <img 
+            src="assets/settings.png" 
+            alt="Settings" 
+            className={`${styles['icon-structure']} ${styles['margin-left']} ${styles['clickable']}`} 
+            onClick={() => setShowSettings(true)} 
+          />
         </div>
         <div className={`${styles['width-100']} ${styles['height-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']}`}>
           {content}
