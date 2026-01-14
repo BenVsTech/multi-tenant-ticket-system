@@ -117,7 +117,6 @@
     text-align: center;
     text-transform: uppercase;
     text-decoration: none;
-    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .icon-structure {
@@ -154,4 +153,21 @@
 .secondary-button {
     background-color: #f5f5f5;
     color: #000000;
+}
+
+.error-message {
+    background-color: #fee;
+    color: #c33;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    padding: 0.75rem;
+}
+
+.title-text {
+    font-size: 24px;
+    font-weight: 600;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+    text-transform: uppercase;
+    text-decoration: none;
 }

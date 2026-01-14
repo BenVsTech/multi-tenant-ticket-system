@@ -326,6 +326,56 @@ export async function createDatabaseSchema(
     }
 }
 
+export async function checkPassword(client: DatabaseClient, email: string, password: string): Promise<DataReturnObject<string>> {
+    try{
+
+        const userResult = await getRowsByColumnValue(
+            client,
+            'users',
+            'email',
+            email
+        );
+        if (!userResult.status || !userResult.data || userResult.data.length === 0) {
+            return {
+                status: false,
+                data: null,
+                message: 'User not found'
+            };
+        }
+
+        const user = userResult.data[0];
+
+        const passwordCheckResult = await client.query(
+            `SELECT crypt($1, $2) = $2 as password_match`,
+            [password, user.password]
+        );
+        if (
+            !passwordCheckResult.rows ||
+            passwordCheckResult.rows.length === 0 ||
+            !passwordCheckResult.rows[0].password_match
+        ) {
+            return {
+                status: false,
+                data: null,
+                message: 'Invalid password'
+            };
+        }
+
+        return {
+            status: true,
+            data: user.id.toString(),
+            message: 'Password checked successfully'
+        };
+
+    } catch(error: unknown) {
+        return {
+            status: false,
+            data: null,
+            message: error instanceof Error ? error.message : 'Unknown error while checking password'
+        };
+    }
+}
+
 export async function dynamicSendData(client: DatabaseClient, table: string, columns: string[], data: any[]): Promise<DataReturnObject<any>> {
     try{
 
