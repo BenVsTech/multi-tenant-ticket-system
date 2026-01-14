@@ -3,8 +3,8 @@
 export const testUsers = {
     details: {
         name: 'Test User',
-        email: 'test@example.com',
-        password: 'testpassword123'
+        email: 'test@test.com',
+        password: 'test'
     }, 
     account: {
         name: 'Test Account',
