@@ -4,6 +4,10 @@ import { DataReturnObject } from "@/types/helper";
 import { DatabaseClient } from "../database";
 import { DatabaseConfiguration, DatabaseTable } from "@/types/database";
 
+// Constants
+
+const tenantTables = ['team', 'team_user', 'ticket', 'comment'];
+
 // Validation Functions
 
 function validateIdentifier(name: string, type: 'table' | 'column' | 'database'): boolean {
@@ -22,6 +26,21 @@ function validateIdentifierOrError<T>(name: string, type: 'table' | 'column' | '
         } as DataReturnObject<T>;
     }
     return null;
+}
+
+function validateTenantTable(table: string): DataReturnObject<boolean> {
+    if (!tenantTables.includes(table)) {
+        return {
+            status: false,
+            data: null,
+            message: `Invalid tenant table name: '${table}'. Must be one of: ${tenantTables.join(', ')}`
+        }
+    }
+    return {
+        status: true,
+        data: true,
+        message: `Table '${table}' is a valid tenant table`
+    }
 }
 
 // Exports
@@ -346,7 +365,7 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
         const user = userResult.data[0];
 
         const passwordCheckResult = await client.query(
-            `SELECT crypt($1, $2) = $2 as password_match`,
+            `SELECT ($2 = crypt($1, $2)) as password_match`,
             [password, user.password]
         );
         if (
@@ -372,6 +391,109 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
             status: false,
             data: null,
             message: error instanceof Error ? error.message : 'Unknown error while checking password'
+        };
+    }
+}
+
+export async function authorizeUser(client: DatabaseClient, email: string, password: string): Promise<DataReturnObject<{id: number, email: string, name: string, roles: {accountId: number, accountName: string, role: string, permissions: string[]}[] }>> {
+    try{
+
+        const passwordCheckResult = await checkPassword(client, email, password);
+          if (!passwordCheckResult.status || !passwordCheckResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: passwordCheckResult.message
+            };
+          }
+
+          const userResult = await getRowById(client, 'users', parseInt(passwordCheckResult.data));
+          if (!userResult.status || !userResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: userResult.message
+            };
+          }
+
+          const user = userResult.data;
+
+          const userAccountResult = await getRowsByColumnValue(client, 'user_account', 'user_id', user.id.toString());
+          if (!userAccountResult.status || !userAccountResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: userAccountResult.message
+            };
+          }
+
+          const userAccounts = userAccountResult.data;
+
+          const roles = (await Promise.all(userAccounts.map(async (userAccount: any) => {
+
+            let permissions: string[] = [];
+
+            if (!client) {
+              return null;
+            }
+
+            const roleResult = await getRowById(client, 'role', userAccount.role_id);
+            if (!roleResult.status || !roleResult.data) {
+              return null;
+            }
+
+            const role = roleResult.data;
+
+            const rolePermissionsResult = await getRowsByColumnValue(client, 'role_permission', 'role_id', role.id.toString());
+            if (!rolePermissionsResult.status || !rolePermissionsResult.data) {
+              return null;
+            }
+
+            const permissionIds = rolePermissionsResult.data.map((rolePermission: any) => rolePermission.permission_id);
+
+            for (const permissionId of permissionIds) {
+
+            const permissionResult = await getRowById(client, 'permission', permissionId);
+            if (!permissionResult.status || !permissionResult.data) {
+                continue;
+              }
+
+              const permission = permissionResult.data;
+              permissions.push(permission.name);
+            }
+
+            const accountResult = await getRowById(client, 'account', userAccount.account_id);
+            if (!accountResult.status || !accountResult.data) {
+              return null;
+            }
+
+            const account = accountResult.data;
+
+            return {
+              accountId: userAccount.account_id,
+              accountName: account.name,
+              role: role.name,
+              permissions: permissions,
+            };
+
+        }))).filter((role): role is NonNullable<typeof role> => role !== null)
+
+        return {
+            status: true,
+            data: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                roles: roles
+            },
+            message: 'User authorized successfully'
+        }
+
+    } catch(error: unknown) {
+        return {
+            status: false,
+            data: null,
+            message: error instanceof Error ? error.message : 'Unknown error while authorizing user'
         };
     }
 }
@@ -416,7 +538,7 @@ export async function dynamicSendData(client: DatabaseClient, table: string, col
     }
 }
 
-export async function updateRowById(client: DatabaseClient, table: string, columns: string[], data: any[], id: number): Promise<DataReturnObject<boolean>> {
+export async function updateRowById(client: DatabaseClient, table: string, columns: string[], data: any[], id: number, accountId?: number): Promise<DataReturnObject<boolean>> {
     try{
 
         const tableValidationError = validateIdentifierOrError<boolean>(table, 'table');
@@ -435,11 +557,34 @@ export async function updateRowById(client: DatabaseClient, table: string, colum
             if (columnValidationError) return columnValidationError;
         }
 
+        const tenantTableValidation = validateTenantTable(table);
+
+        if (tenantTableValidation.status && accountId === undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID is required for tenant table '${table}'`
+            };
+        }
+
+        if (!tenantTableValidation.status && accountId !== undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID cannot be used with non-tenant table '${table}'`
+            };
+        }
+
         const setClause = columns.map((col, index) => `${col} = $${index + 1}`).join(', ');
 
-        const query = `UPDATE ${table} SET ${setClause} WHERE id = $${columns.length + 1}`;
+        const queryString = tenantTableValidation.status
+            ? `UPDATE ${table} SET ${setClause} WHERE id = $${columns.length + 1} AND account_id = $${columns.length + 2}`
+            : `UPDATE ${table} SET ${setClause} WHERE id = $${columns.length + 1}`;
 
-        const result = await client.query(query, [...data, id]);
+        const result = await client.query(
+            queryString,
+            tenantTableValidation.status ? [...data, id, accountId] : [...data, id]
+        );
 
         return {
             status: true,
@@ -456,13 +601,38 @@ export async function updateRowById(client: DatabaseClient, table: string, colum
     }
 }
 
-export async function getAllRowsFromTable(client: DatabaseClient, table: string): Promise<DataReturnObject<any[]>> {
+export async function getAllRowsFromTable(client: DatabaseClient, table: string, accountId?: number): Promise<DataReturnObject<any[]>> {
     try{
 
         const validationError = validateIdentifierOrError<any[]>(table, 'table');
         if (validationError) return validationError;
 
-        const result = await client.query(`SELECT * FROM ${table} ORDER BY created_at DESC`);
+        const tenantTableValidation = validateTenantTable(table);
+
+        if (tenantTableValidation.status && accountId === undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID is required for tenant table '${table}'`
+            };
+        }
+
+        if (!tenantTableValidation.status && accountId !== undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID cannot be used with non-tenant table '${table}'`
+            };
+        }
+
+        const queryString = tenantTableValidation.status
+            ? `SELECT * FROM ${table} WHERE account_id = $1 ORDER BY created_at DESC`
+            : `SELECT * FROM ${table} ORDER BY created_at DESC`;
+
+        const result = await client.query(
+            queryString,
+            tenantTableValidation.status ? [accountId] : []
+        );
 
         return {
             status: true,
@@ -479,13 +649,38 @@ export async function getAllRowsFromTable(client: DatabaseClient, table: string)
     }
 }
 
-export async function getRowById(client: DatabaseClient, table: string, id: number): Promise<DataReturnObject<any>> {
+export async function getRowById(client: DatabaseClient, table: string, id: number, accountId?: number): Promise<DataReturnObject<any>> {
     try{
 
         const validationError = validateIdentifierOrError<any>(table, 'table');
         if (validationError) return validationError;
 
-        const result = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+        const tenantTableValidation = validateTenantTable(table);
+
+        if (tenantTableValidation.status && accountId === undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID is required for tenant table '${table}'`
+            };
+        }
+
+        if (!tenantTableValidation.status && accountId !== undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID cannot be used with non-tenant table '${table}'`
+            };
+        }
+
+        const queryString = tenantTableValidation.status
+            ? `SELECT * FROM ${table} WHERE id = $1 AND account_id = $2`
+            : `SELECT * FROM ${table} WHERE id = $1`;
+
+        const result = await client.query(
+            queryString,
+            tenantTableValidation.status ? [id, accountId] : [id]
+        );
 
         return {
             status: true,
@@ -502,7 +697,7 @@ export async function getRowById(client: DatabaseClient, table: string, id: numb
     }
 }
 
-export async function getRowsByColumnValue(client: DatabaseClient, table: string, column: string, value: string): Promise<DataReturnObject<any[]>> {
+export async function getRowsByColumnValue(client: DatabaseClient, table: string, column: string, value: string, accountId?: number): Promise<DataReturnObject<any[]>> {
     try{
 
         const tableValidationError = validateIdentifierOrError<any[]>(table, 'table');
@@ -511,7 +706,32 @@ export async function getRowsByColumnValue(client: DatabaseClient, table: string
         const columnValidationError = validateIdentifierOrError<any[]>(column, 'column');
         if (columnValidationError) return columnValidationError;
 
-        const result = await client.query(`SELECT * FROM ${table} WHERE ${column} = $1`, [value]);
+        const tenantTableValidation = validateTenantTable(table);
+
+        if (tenantTableValidation.status && accountId === undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID is required for tenant table '${table}'`
+            };
+        }
+
+        if (!tenantTableValidation.status && accountId !== undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID cannot be used with non-tenant table '${table}'`
+            };
+        }
+
+        const queryString = tenantTableValidation.status
+            ? `SELECT * FROM ${table} WHERE ${column} = $1 AND account_id = $2`
+            : `SELECT * FROM ${table} WHERE ${column} = $1`;
+
+        const result = await client.query(
+            queryString,
+            tenantTableValidation.status ? [value, accountId] : [value]
+        );
 
         if(result.rows.length === 0) {
             return {
@@ -536,13 +756,38 @@ export async function getRowsByColumnValue(client: DatabaseClient, table: string
     }
 }
 
-export async function deleteRowById(client: DatabaseClient, table: string, id: number): Promise<DataReturnObject<boolean>> {
+export async function deleteRowById(client: DatabaseClient, table: string, id: number, accountId?: number): Promise<DataReturnObject<boolean>> {
     try{
 
         const validationError = validateIdentifierOrError<boolean>(table, 'table');
         if (validationError) return validationError;
 
-        const result = await client.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+        const tenantTableValidation = validateTenantTable(table);
+
+        if (tenantTableValidation.status && accountId === undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID is required for tenant table '${table}'`
+            };
+        }
+
+        if (!tenantTableValidation.status && accountId !== undefined) {
+            return {
+                status: false,
+                data: null,
+                message: `Account ID cannot be used with non-tenant table '${table}'`
+            };
+        }
+
+        const queryString = tenantTableValidation.status
+            ? `DELETE FROM ${table} WHERE id = $1 AND account_id = $2`
+            : `DELETE FROM ${table} WHERE id = $1`;
+
+        const result = await client.query(
+            queryString,
+            tenantTableValidation.status ? [id, accountId] : [id]
+        );
 
         return {
             status: true,

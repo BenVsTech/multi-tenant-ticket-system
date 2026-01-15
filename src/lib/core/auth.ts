@@ -3,11 +3,13 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { connectToDatabase, closeDatabaseConnection, DatabaseClient } from "@/lib/core/database";
-import { checkPassword, getRowsByColumnValue, getRowById } from "@/lib/core/database/queries";
+import { authorizeUser } from "@/lib/core/database/queries";
+import { authLimiter } from "@/lib/core/rateLimit";
 
 // Exports
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -16,7 +18,15 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+
         if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const emailKey = `auth:${credentials.email.toLowerCase()}`;
+        const rateLimitResult = authLimiter.check(5, emailKey);
+
+        if (!rateLimitResult.success) {
           return null;
         }
 
@@ -30,79 +40,16 @@ export const authOptions: NextAuthOptions = {
 
           dbClient = connection.data;
 
-          const passwordCheckResult = await checkPassword(dbClient, credentials.email, credentials.password);
-          if (!passwordCheckResult.status || !passwordCheckResult.data) {
+          const authorizeUserResult = await authorizeUser(dbClient, credentials.email, credentials.password);
+          if (!authorizeUserResult.status || !authorizeUserResult.data) {
             return null;
           }
-
-          const userResult = await getRowById(dbClient, 'users', parseInt(passwordCheckResult.data));
-          if (!userResult.status || !userResult.data) {
-            return null;
-          }
-
-          const user = userResult.data;
-
-          const userAccountResult = await getRowsByColumnValue(dbClient, 'user_account', 'user_id', user.id.toString());
-          if (!userAccountResult.status || !userAccountResult.data) {
-            return null;
-          }
-
-          const userAccounts = userAccountResult.data;
-
-          const roles = (await Promise.all(userAccounts.map(async (userAccount: any) => {
-
-            let permissions: string[] = [];
-
-            if (!dbClient) {
-              return null;
-            }
-
-            const roleResult = await getRowById(dbClient, 'role', userAccount.role_id);
-            if (!roleResult.status || !roleResult.data) {
-              return null;
-            }
-
-            const role = roleResult.data;
-
-            const rolePermissionsResult = await getRowsByColumnValue(dbClient, 'role_permission', 'role_id', role.id.toString());
-            if (!rolePermissionsResult.status || !rolePermissionsResult.data) {
-              return null;
-            }
-
-            const permissionIds = rolePermissionsResult.data.map((rolePermission: any) => rolePermission.permission_id);
-
-            for (const permissionId of permissionIds) {
-
-            const permissionResult = await getRowById(dbClient, 'permission', permissionId);
-            if (!permissionResult.status || !permissionResult.data) {
-                continue;
-              }
-
-              const permission = permissionResult.data;
-              permissions.push(permission.name);
-            }
-
-            const accountResult = await getRowById(dbClient, 'account', userAccount.account_id);
-            if (!accountResult.status || !accountResult.data) {
-              return null;
-            }
-
-            const account = accountResult.data;
-
-            return {
-              accountId: userAccount.account_id,
-              accountName: account.name,
-              role: role.name,
-              permissions: permissions,
-            };
-
-          }))).filter((role): role is NonNullable<typeof role> => role !== null)
 
           return {
-            id: passwordCheckResult.data,
-            email: user.email,
-            name: user.name,
-            roles: roles,
+            id: String(authorizeUserResult.data.id),
+            email: authorizeUserResult.data.email,
+            name: authorizeUserResult.data.name,
+            roles: authorizeUserResult.data.roles,
           };
 
         } catch (error) {

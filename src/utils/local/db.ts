@@ -235,6 +235,10 @@ export const databaseConfiguration: DatabaseConfiguration = {
                     type: databaseConstants.integer,
                 },
                 {
+                    name: 'account_id',
+                    type: databaseConstants.integer,
+                },
+                {
                     name: 'updated_at',
                     type: databaseConstants.defaultTimestamp,
                 },
@@ -243,7 +247,9 @@ export const databaseConfiguration: DatabaseConfiguration = {
                     type: databaseConstants.defaultTimestamp,
                 },
             ],
-            foreignKeys: '',
+            foreignKeys: `
+                FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
+            `,
             uniqueConstraints: '',
             useUpdatedAtTrigger: true,
             usePasswordEncryptionTrigger: false,
@@ -264,6 +270,10 @@ export const databaseConfiguration: DatabaseConfiguration = {
                     type: databaseConstants.integer,
                 },
                 {
+                    name: 'account_id',
+                    type: databaseConstants.integer,
+                },
+                {
                     name: 'updated_at',
                     type: databaseConstants.defaultTimestamp,
                 },
@@ -274,7 +284,8 @@ export const databaseConfiguration: DatabaseConfiguration = {
             ],
             foreignKeys: `
                 FOREIGN KEY (team_id) REFERENCES team(id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
             `,
             uniqueConstraints: '',
             useUpdatedAtTrigger: true,
@@ -308,6 +319,10 @@ export const databaseConfiguration: DatabaseConfiguration = {
                     type: databaseConstants.integer,
                 },
                 {
+                    name: 'account_id',
+                    type: databaseConstants.integer,
+                },
+                {
                     name: 'created_at',
                     type: databaseConstants.defaultTimestamp,
                 },
@@ -318,7 +333,8 @@ export const databaseConfiguration: DatabaseConfiguration = {
             ],
             foreignKeys: `
                 FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE CASCADE
+                FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
             `,
             uniqueConstraints: '',
             useUpdatedAtTrigger: true,
@@ -344,6 +360,10 @@ export const databaseConfiguration: DatabaseConfiguration = {
                     type: databaseConstants.integer,
                 },
                 {
+                    name: 'account_id',
+                    type: databaseConstants.integer,
+                },
+                {
                     name: 'created_at',
                     type: databaseConstants.defaultTimestamp,
                 },
@@ -354,7 +374,8 @@ export const databaseConfiguration: DatabaseConfiguration = {
             ],
             foreignKeys: `
                 FOREIGN KEY (ticket_id) REFERENCES ticket(id) ON DELETE CASCADE,
-                FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+                FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
             `,
             uniqueConstraints: '',
             useUpdatedAtTrigger: false,
