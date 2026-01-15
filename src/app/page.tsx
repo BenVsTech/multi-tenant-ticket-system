@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { sections } from "@/types/component";
 import styles from "./page.module.css";
 import Settings from "@/components/settings";
 
@@ -17,12 +18,30 @@ export default function Home() {
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [openSections, setOpenSections] = useState<sections>({management: false, admin: false, account: false, system: false});
+  const [permissions, setPermissions] = useState<string[]>([]);
+
+  useEffect(() => {
+    console.log('permissions', permissions);
+  }, [permissions]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (session && selectedAccount) {
+      const accountPermissions = session.user.roles.find((role) => role.accountId.toString() === selectedAccount)?.permissions;
+      if (accountPermissions) {
+        setPermissions(accountPermissions);
+      }
+    } else {
+      setPermissions([]);
+      setSelectedContent(null);
+    }
+  }, [selectedAccount, session]);
 
   if (status === "loading") {
     return (
@@ -48,12 +67,47 @@ export default function Home() {
           <img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} />
         </li>
         <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'home' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('home')}>Home</li>
-        <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('my-tickets')}>My Tickets</li>
-        <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'performance' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('performance')}>Performance</li>
-        <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'management' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('management')}>Management</li>
-        <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'admin' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('admin')}>Admin</li>
-        <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'settings' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('settings')}>Settings</li>
+        <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={() => permissions.includes('ticket.view') && setSelectedContent('my-tickets')}>My Tickets</li>
+        <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'performance' ? styles['selected'] : ''}`} onClick={() => permissions.includes('performance.view') && setSelectedContent('performance')}>Performance</li>
+
+        <li className={`${styles['pd-all-round']} ${permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={() => (permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view')) && setOpenSections({ ...openSections, management: !openSections.management })}>Management</li>
+
+        {openSections.management && (
+          <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('team.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'teams' ? styles['selected'] : ''}`} onClick={() => permissions.includes('team.view') && setSelectedContent('teams')}>Teams</li>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'tickets' ? styles['selected'] : ''}`} onClick={() => permissions.includes('ticket.view') && setSelectedContent('tickets')}>Tickets</li>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('comment.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'comments' ? styles['selected'] : ''}`} onClick={() => permissions.includes('comment.view') && setSelectedContent('comments')}>Comments</li>
+          </ul>
+        )}
+
+        <li className={`${styles['pd-all-round']} ${permissions.includes('user.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={() => permissions.includes('user.view') && setOpenSections({ ...openSections, admin: !openSections.admin })}>Admin</li>
+
+        {openSections.admin && (
+          <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('user.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'user-management' ? styles['selected'] : ''}`} onClick={() => permissions.includes('user.view') && setSelectedContent('user-management')}>User Management</li>
+          </ul>
+        )}
+
+        <li className={`${styles['pd-all-round']} ${permissions.includes('account.manage') ? styles['clickable'] : styles['un-clickable']}`} onClick={() => permissions.includes('account.manage') && setOpenSections({ ...openSections, account: !openSections.account })}>Account</li>
+
+        {openSections.account && (
+          <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('account.manage') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'account-details' ? styles['selected'] : ''}`} onClick={() => permissions.includes('account.manage') && setSelectedContent('account-details')}>Account Details</li>
+          </ul>
+        )}
+
+        <li className={`${styles['pd-all-round']} ${styles['clickable']}`} onClick={() => setOpenSections({ ...openSections, system: !openSections.system })}>System</li>
+
+        {openSections.system && (
+          <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'updated-password' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('updated-password')}>Updated Password</li>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'owned-accounts' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('owned-accounts')}>Owned Accounts</li>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'system-requests' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('system-requests')}>System Requests</li>
+          </ul>
+        )}
+
       </ul>
+
       <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-center']} ${styles['align-center']} ${styles['secondary-background']}`}>
         <div className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['row-container']} ${styles['content-space-between']} ${styles['align-center']} ${styles['primary-background']}`}>
           <select 

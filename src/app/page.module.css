@@ -168,6 +168,10 @@
     background-color: #ffffff;
 }
 
+.tertiary-background {
+    background-color: #e0e0e0;
+}
+
 .primary-button {
     background-color: #0000ff;
     color: #ffffff;

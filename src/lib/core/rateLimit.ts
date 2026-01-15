@@ -56,4 +56,3 @@ export function rateLimit(options: RateLimitOptions): RateLimitChecker {
 export const authLimiter = rateLimit({
     interval: 60 * 1000,
 });
-

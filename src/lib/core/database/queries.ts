@@ -1,47 +1,10 @@
 // Imports
 
+import { timingSafeEqual } from "crypto";
 import { DataReturnObject } from "@/types/helper";
 import { DatabaseClient } from "../database";
 import { DatabaseConfiguration, DatabaseTable } from "@/types/database";
-
-// Constants
-
-const tenantTables = ['team', 'team_user', 'ticket', 'comment'];
-
-// Validation Functions
-
-function validateIdentifier(name: string, type: 'table' | 'column' | 'database'): boolean {
-    if (!name || name.length === 0 || name.length > 63) {
-        return false;
-    }
-    return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
-}
-
-function validateIdentifierOrError<T>(name: string, type: 'table' | 'column' | 'database'): DataReturnObject<T> | null {
-    if (!validateIdentifier(name, type)) {
-        return {
-            status: false,
-            data: null,
-            message: `Invalid ${type} name format: '${name}'. Must start with letter/underscore and contain only letters, numbers, and underscores (max 63 chars)`
-        } as DataReturnObject<T>;
-    }
-    return null;
-}
-
-function validateTenantTable(table: string): DataReturnObject<boolean> {
-    if (!tenantTables.includes(table)) {
-        return {
-            status: false,
-            data: null,
-            message: `Invalid tenant table name: '${table}'. Must be one of: ${tenantTables.join(', ')}`
-        }
-    }
-    return {
-        status: true,
-        data: true,
-        message: `Table '${table}' is a valid tenant table`
-    }
-}
+import { validateIdentifierOrError, validateColumnTypeOrError, validateForeignKeyConstraintOrError, validateUniqueConstraintOrError, validateTenantTable } from "../validation";
 
 // Exports
 
@@ -144,7 +107,16 @@ export async function createTable(client: DatabaseClient, table: DatabaseTable):
         for (const col of table.columns) {
             const columnValidationError = validateIdentifierOrError<boolean>(col.name, 'column');
             if (columnValidationError) return columnValidationError;
+            
+            const columnTypeValidationError = validateColumnTypeOrError<boolean>(col.type);
+            if (columnTypeValidationError) return columnTypeValidationError;
         }
+
+        const foreignKeysValidationError = validateForeignKeyConstraintOrError<boolean>(table.foreignKeys);
+        if (foreignKeysValidationError) return foreignKeysValidationError;
+
+        const uniqueConstraintsValidationError = validateUniqueConstraintOrError<boolean>(table.uniqueConstraints);
+        if (uniqueConstraintsValidationError) return uniqueConstraintsValidationError;
 
         const columnDefinitions = table.columns.map(col => `${col.name} ${col.type}`).join(', ');
 
@@ -347,42 +319,67 @@ export async function createDatabaseSchema(
 
 export async function checkPassword(client: DatabaseClient, email: string, password: string): Promise<DataReturnObject<string>> {
     try{
-
+        
         const userResult = await getRowsByColumnValue(
             client,
             'users',
             'email',
             email
         );
+        
+        let passwordHash: string;
+        let userId: string | null = null;
+        
         if (!userResult.status || !userResult.data || userResult.data.length === 0) {
-            return {
-                status: false,
-                data: null,
-                message: 'User not found'
-            };
+            passwordHash = '$2a$10$dummyhashfordummyuserenumerationprevention';
+        } else {
+            const user = userResult.data[0];
+            passwordHash = user.password;
+            userId = user.id.toString();
         }
 
-        const user = userResult.data[0];
-
         const passwordCheckResult = await client.query(
-            `SELECT ($2 = crypt($1, $2)) as password_match`,
-            [password, user.password]
+            `SELECT crypt($1, $2) as computed_hash`,
+            [password, passwordHash]
         );
+        
         if (
             !passwordCheckResult.rows ||
             passwordCheckResult.rows.length === 0 ||
-            !passwordCheckResult.rows[0].password_match
+            !passwordCheckResult.rows[0].computed_hash
         ) {
             return {
                 status: false,
                 data: null,
-                message: 'Invalid password'
+                message: 'Invalid email or password'
+            };
+        }
+
+        const computedHash = passwordCheckResult.rows[0].computed_hash;
+        
+        const storedHashBuffer = Buffer.from(passwordHash, 'utf8');
+        const computedHashBuffer = Buffer.from(computedHash, 'utf8');
+        
+        let passwordsMatch = false;
+        if (storedHashBuffer.length === computedHashBuffer.length) {
+            try {
+                passwordsMatch = timingSafeEqual(storedHashBuffer, computedHashBuffer);
+            } catch (error) {
+                passwordsMatch = false;
+            }
+        }
+        
+        if (!passwordsMatch || userId === null) {
+            return {
+                status: false,
+                data: null,
+                message: 'Invalid email or password'
             };
         }
 
         return {
             status: true,
-            data: user.id.toString(),
+            data: userId,
             message: 'Password checked successfully'
         };
 
@@ -390,7 +387,7 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while checking password'
+            message: 'Invalid email or password'
         };
     }
 }
@@ -403,7 +400,7 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
             return {
                 status: false,
                 data: null,
-                message: passwordCheckResult.message
+                message: 'Invalid email or password'
             };
           }
 
@@ -412,18 +409,18 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
             return {
                 status: false,
                 data: null,
-                message: userResult.message
+                message: 'Invalid email or password'
             };
           }
 
           const user = userResult.data;
 
           const userAccountResult = await getRowsByColumnValue(client, 'user_account', 'user_id', user.id.toString());
-          if (!userAccountResult.status || !userAccountResult.data) {
+          if (!userAccountResult.status || !userAccountResult.data || userAccountResult.data.length === 0) {
             return {
                 status: false,
                 data: null,
-                message: userAccountResult.message
+                message: 'Invalid email or password'
             };
           }
 
@@ -493,7 +490,7 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while authorizing user'
+            message: 'Invalid email or password'
         };
     }
 }
@@ -689,10 +686,11 @@ export async function getRowById(client: DatabaseClient, table: string, id: numb
         };
 
     } catch(error: unknown) {
+        console.error(`Error in getRowById for table '${table}':`, error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : `Unknown error while getting row with id '${id}' from table '${table}'`
+            message: `Database operation failed`
         };
     }
 }
@@ -737,21 +735,22 @@ export async function getRowsByColumnValue(client: DatabaseClient, table: string
             return {
                 status: true,
                 data: [],
-                message: `No rows with column value '${value}' from table '${table}' found`
+                message: `No rows found`
             };
         } else {
             return {
                 status: true,
                 data: result.rows,
-                message: `Rows with column value '${value}' from table '${table}' retrieved successfully`
+                message: `Rows retrieved successfully`
             };
         }
 
     } catch(error: unknown) {
+        console.error(`Error in getRowsByColumnValue for table '${table}':`, error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : `Unknown error while getting rows by column value '${value}' from table '${table}'`
+            message: `Database operation failed`
         };
     }
 }
