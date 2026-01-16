@@ -19,6 +19,6 @@ export interface RateLimitOptions {
 }
 
 export interface RateLimitChecker {
-    check: (limit: number, token: string) => RateLimitResult;
+    check: (limit: number, token: string) => Promise<RateLimitResult>;
 }
 

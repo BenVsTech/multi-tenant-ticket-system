@@ -1,15 +1,28 @@
 // Imports
 
+import dotenv from "dotenv";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { connectToDatabase, closeDatabaseConnection, DatabaseClient } from "@/lib/core/database";
 import { authorizeUser } from "@/lib/core/database/queries";
 import { authLimiter } from "@/lib/core/rateLimit";
 
+// Load Environment Variables
+
+dotenv.config();
+
+// Environment Variables
+
+const secret = process.env.NEXTAUTH_SECRET;
+
+if(!secret || secret.length < 32) {
+  throw new Error("NEXTAUTH_SECRET is not set or is not at least 32 characters long");
+}
+
 // Exports
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: secret,
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -24,7 +37,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const emailKey = `auth:${credentials.email.toLowerCase()}`;
-        const rateLimitResult = authLimiter.check(5, emailKey);
+        const rateLimitResult = await authLimiter.check(5, emailKey);
 
         if (!rateLimitResult.success) {
           return null;

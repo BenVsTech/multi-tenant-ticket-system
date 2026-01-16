@@ -1,54 +1,79 @@
 // Imports
 
-import { RateLimitStore, RateLimitResult, RateLimitOptions, RateLimitChecker } from "@/types/rateLimit";
-
-// Variables
-
-const rateLimitStore: RateLimitStore = {};
+import { RateLimitResult, RateLimitOptions, RateLimitChecker } from "@/types/rateLimit";
+import { getRedisClient } from "./redis";
 
 // Exports
 
 export function rateLimit(options: RateLimitOptions): RateLimitChecker {
     return {
-        check: (limit: number, token: string): RateLimitResult => {
-            const now = Date.now();
-            Object.keys(rateLimitStore).forEach((key) => {
-                if (rateLimitStore[key].resetTime < now) {
-                    delete rateLimitStore[key];
+        check: async (limit: number, token: string): Promise<RateLimitResult> => {
+            try {
+
+                const client = await getRedisClient();
+                if (!client.status || !client.data) {
+                    console.error('Redis unavailable, allowing request');
+                    return {
+                        success: true,
+                        limit,
+                        remaining: limit - 1,
+                        reset: Date.now() + options.interval,
+                    };
                 }
-            });
 
-            if (!rateLimitStore[token]) {
-                rateLimitStore[token] = {
-                    count: 0,
-                    resetTime: now + options.interval,
-                };
-            }
-
-            const record = rateLimitStore[token];
-
-            if (record.resetTime < now) {
-                record.count = 0;
-                record.resetTime = now + options.interval;
-            }
-
-            if (record.count >= limit) {
+                const now = Date.now();
+                const key = `ratelimit:${token}`;
+                
+                const data = await client.data.get(key);
+                
+                let count = 0;
+                let resetTime = now + options.interval;
+                
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    count = parsed.count;
+                    resetTime = parsed.resetTime;
+                    
+                    if (resetTime < now) {
+                        count = 0;
+                        resetTime = now + options.interval;
+                    }
+                }
+                
+                if (count >= limit) {
+                    return {
+                        success: false,
+                        limit,
+                        remaining: 0,
+                        reset: resetTime,
+                    };
+                }
+                
+                count += 1;
+                
+                const ttl = Math.ceil((resetTime - now) / 1000);
+                
+                await client.data.setEx(
+                    key,
+                    ttl,
+                    JSON.stringify({ count, resetTime })
+                );
+                
                 return {
-                    success: false,
+                    success: true,
                     limit,
-                    remaining: 0,
-                    reset: record.resetTime,
+                    remaining: limit - count,
+                    reset: resetTime,
+                };
+            } catch (error) {
+                console.error('Rate limit Redis error:', error);
+                return {
+                    success: true,
+                    limit,
+                    remaining: limit - 1,
+                    reset: Date.now() + options.interval,
                 };
             }
-
-            record.count += 1;
-
-            return {
-                success: true,
-                limit,
-                remaining: limit - record.count,
-                reset: record.resetTime,
-            };
         },
     };
 }
