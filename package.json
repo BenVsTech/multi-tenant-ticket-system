@@ -1,0 +1,47 @@
+{
+  "name": "ticket-management-system",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run docker:up && next dev",
+    "dev:only": "next dev",
+    "docker:up": "docker-compose down && docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f redis",
+    "docker:clean": "docker-compose down -v",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "create-local-db": "tsx --tsconfig tsconfig.json script/createLocalDatabase.ts",
+    "create-test-user": "tsx --tsconfig tsconfig.json script/createTestUser.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "next": "16.1.1",
+    "next-auth": "^4.24.13",
+    "pg": "^8.16.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "redis": "^5.10.0"
+  },
+  "devDependencies": {
+    "@jest/types": "^30.2.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20",
+    "@types/pg": "^8.16.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/redis": "^4.0.10",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "jest": "^30.2.0",
+    "tailwindcss": "^4",
+    "ts-jest": "^29.4.6",
+    "tsx": "^4.7.0",
+    "typescript": "^5"
+  }
+}
