@@ -6,6 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { connectToDatabase, closeDatabaseConnection, DatabaseClient } from "@/lib/core/database";
 import { authorizeUser } from "@/lib/core/database/queries";
 import { authLimiter } from "@/lib/core/rateLimit";
+import { logger } from "./helper";
 
 // Load Environment Variables
 
@@ -66,7 +67,7 @@ export const authOptions: NextAuthOptions = {
           };
 
         } catch (error) {
-          console.error("Auth error:", error);
+          logger.error('Auth', error);
           return null;
         } finally {
           if (dbClient) {

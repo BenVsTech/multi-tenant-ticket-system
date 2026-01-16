@@ -2,6 +2,7 @@
 
 import { RateLimitResult, RateLimitOptions, RateLimitChecker } from "@/types/rateLimit";
 import { getRedisClient } from "./redis";
+import { logger } from "./helper";
 
 // Exports
 
@@ -12,7 +13,7 @@ export function rateLimit(options: RateLimitOptions): RateLimitChecker {
 
                 const client = await getRedisClient();
                 if (!client.status || !client.data) {
-                    console.error('Redis unavailable, allowing request');
+                    logger.warning('RateLimit', 'Redis unavailable, allowing request');
                     return {
                         success: true,
                         limit,
@@ -66,7 +67,7 @@ export function rateLimit(options: RateLimitOptions): RateLimitChecker {
                     reset: resetTime,
                 };
             } catch (error) {
-                console.error('Rate limit Redis error:', error);
+                logger.error('RateLimit', error);
                 return {
                     success: true,
                     limit,

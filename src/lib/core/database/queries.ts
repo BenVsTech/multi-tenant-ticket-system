@@ -5,6 +5,7 @@ import { DataReturnObject } from "@/types/helper";
 import { DatabaseClient } from "../database";
 import { DatabaseConfiguration, DatabaseTable } from "@/types/database";
 import { validateIdentifierOrError, validateColumnTypeOrError, validateForeignKeyConstraintOrError, validateUniqueConstraintOrError, validateTenantTable } from "../validation";
+import { logger } from "../helper";
 
 // Exports
 
@@ -686,7 +687,7 @@ export async function getRowById(client: DatabaseClient, table: string, id: numb
         };
 
     } catch(error: unknown) {
-        console.error(`Error in getRowById for table '${table}':`, error);
+        logger.error('getRowById', error, { table });
         return {
             status: false,
             data: null,
@@ -746,7 +747,7 @@ export async function getRowsByColumnValue(client: DatabaseClient, table: string
         }
 
     } catch(error: unknown) {
-        console.error(`Error in getRowsByColumnValue for table '${table}':`, error);
+        logger.error('getRowsByColumnValue', error, { table, column });
         return {
             status: false,
             data: null,

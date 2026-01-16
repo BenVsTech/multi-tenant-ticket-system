@@ -3,6 +3,7 @@
 import { Pool, PoolClient } from "pg";
 import dotenv from "dotenv";
 import { DataReturnObject } from "@/types/helper";
+import { logger } from "./helper";
 
 // Load Environment Variables
 
@@ -54,7 +55,7 @@ function getPool(temporary: boolean): Pool {
             });
 
             tempPool.on('error', (err) => {
-                console.error('Unexpected error on temporary pool client', err);
+                logger.error('DatabasePool-Temporary', err);
             });
         }
         return tempPool;
@@ -74,7 +75,7 @@ function getPool(temporary: boolean): Pool {
             });
 
             mainPool.on('error', (err) => {
-                console.error('Unexpected error on main pool client', err);
+                logger.error('DatabasePool-Main', err);
             });
         }
         return mainPool;

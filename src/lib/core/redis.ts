@@ -3,6 +3,7 @@
 import { createClient, RedisClientType } from 'redis';
 import dotenv from 'dotenv';
 import { DataReturnObject } from '@/types/helper';
+import { logger } from './helper';
 
 // Load Environment Variables
 
@@ -39,11 +40,11 @@ export async function getRedisClient(): Promise<DataReturnObject<RedisClientType
         });
     
         redisClient.on('error', (err) => {
-            console.error('Redis Client Error:', err);
+            logger.error('RedisClient', err);
         });
     
         redisClient.on('connect', () => {
-            console.log('Redis Client Connected');
+            logger.info('RedisClient', 'Connected');
         });
     
         await redisClient.connect();
