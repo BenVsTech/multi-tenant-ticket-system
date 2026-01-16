@@ -8,6 +8,10 @@ const tenantTables = ['team', 'team_user', 'ticket', 'comment'];
 
 // Exports
 
+export function escapeIdentifier(identifier: string): string {
+    return `"${identifier.replace(/"/g, '""')}"`;
+}
+
 export function validateIdentifier(name: string, type: 'table' | 'column' | 'database'): boolean {
     if (!name || name.length === 0 || name.length > 63) {
         return false;

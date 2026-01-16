@@ -4,7 +4,7 @@ import { timingSafeEqual } from "crypto";
 import { DataReturnObject } from "@/types/helper";
 import { DatabaseClient } from "../database";
 import { DatabaseConfiguration, DatabaseTable } from "@/types/database";
-import { validateIdentifierOrError, validateColumnTypeOrError, validateForeignKeyConstraintOrError, validateUniqueConstraintOrError, validateTenantTable } from "../validation";
+import { validateIdentifierOrError, validateColumnTypeOrError, validateForeignKeyConstraintOrError, validateUniqueConstraintOrError, validateTenantTable, escapeIdentifier } from "../validation";
 import { logger } from "../helper";
 
 // Exports
@@ -26,10 +26,11 @@ export async function checkIfDatabaseExists(client: DatabaseClient, databaseName
         };
 
     } catch(error: unknown) {
+        logger.error('checkIfDatabaseExists', error, { databaseName });
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while checking if database exists'
+            message: 'Database operation failed'
         };
     }
 }
@@ -40,7 +41,8 @@ export async function createDatabase(client: DatabaseClient, databaseName: strin
         const validationError = validateIdentifierOrError<boolean>(databaseName, 'database');
         if (validationError) return validationError;
 
-        await client.query(`CREATE DATABASE ${databaseName}`);
+        const escapedDatabaseName = escapeIdentifier(databaseName);
+        await client.query(`CREATE DATABASE ${escapedDatabaseName}`);
 
         return {
             status: true,
@@ -49,10 +51,11 @@ export async function createDatabase(client: DatabaseClient, databaseName: strin
         };
 
     } catch(error: unknown) {
+        logger.error('createDatabase', error, { databaseName });
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while creating database'
+            message: 'Database operation failed'
         };
     }
 }
@@ -69,10 +72,11 @@ export async function enablePgcryptoExtension(client: DatabaseClient): Promise<D
         };
 
     } catch(error: unknown) {
+        logger.error('enablePgcryptoExtension', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while enabling pgcrypto extension'
+            message: 'Database operation failed'
         };
     }
 }
@@ -91,15 +95,17 @@ export async function createGlobalTriggerFunctions(client: DatabaseClient, globa
         };
 
     } catch(error: unknown) {
+        logger.error('createGlobalTriggerFunctions', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while creating global trigger functions'
+            message: 'Database operation failed'
         };
     }
 }
 
 export async function createTable(client: DatabaseClient, table: DatabaseTable): Promise<DataReturnObject<boolean>> {
+    let escapedTableName: string | null = null;
     try{
 
         const tableValidationError = validateIdentifierOrError<boolean>(table.name, 'table');
@@ -119,9 +125,12 @@ export async function createTable(client: DatabaseClient, table: DatabaseTable):
         const uniqueConstraintsValidationError = validateUniqueConstraintOrError<boolean>(table.uniqueConstraints);
         if (uniqueConstraintsValidationError) return uniqueConstraintsValidationError;
 
-        const columnDefinitions = table.columns.map(col => `${col.name} ${col.type}`).join(', ');
+        escapedTableName = escapeIdentifier(table.name);
+        const columnDefinitions = table.columns
+            .map(col => `${escapeIdentifier(col.name)} ${col.type}`)
+            .join(', ');
 
-        let createTableSQL = `CREATE TABLE IF NOT EXISTS ${table.name} (${columnDefinitions}`;
+        let createTableSQL = `CREATE TABLE IF NOT EXISTS ${escapedTableName} (${columnDefinitions}`;
 
         if (table.foreignKeys && table.foreignKeys.trim()) {
             createTableSQL += `, ${table.foreignKeys.trim()}`;
@@ -137,10 +146,11 @@ export async function createTable(client: DatabaseClient, table: DatabaseTable):
 
         if (table.useUpdatedAtTrigger) {
             const triggerName = `trigger_update_${table.name}_updated_at`;
+            const escapedTriggerName = escapeIdentifier(triggerName);
             await client.query(`
-                DROP TRIGGER IF EXISTS ${triggerName} ON ${table.name};
-                CREATE TRIGGER ${triggerName}
-                BEFORE UPDATE ON ${table.name}
+                DROP TRIGGER IF EXISTS ${escapedTriggerName} ON ${escapedTableName};
+                CREATE TRIGGER ${escapedTriggerName}
+                BEFORE UPDATE ON ${escapedTableName}
                 FOR EACH ROW
                 EXECUTE FUNCTION update_updated_at_column();
             `);
@@ -148,10 +158,11 @@ export async function createTable(client: DatabaseClient, table: DatabaseTable):
 
         if (table.usePasswordEncryptionTrigger) {
             const triggerName = `trigger_encrypt_${table.name}_password`;
+            const escapedTriggerName = escapeIdentifier(triggerName);
             await client.query(`
-                DROP TRIGGER IF EXISTS ${triggerName} ON ${table.name};
-                CREATE TRIGGER ${triggerName}
-                BEFORE INSERT OR UPDATE ON ${table.name}
+                DROP TRIGGER IF EXISTS ${escapedTriggerName} ON ${escapedTableName};
+                CREATE TRIGGER ${escapedTriggerName}
+                BEFORE INSERT OR UPDATE ON ${escapedTableName}
                 FOR EACH ROW
                 EXECUTE FUNCTION encrypt_password_before_insert();
             `);
@@ -164,10 +175,11 @@ export async function createTable(client: DatabaseClient, table: DatabaseTable):
         };
 
     } catch(error: unknown) {
+        logger.error('createTable', error, { table: table.name });
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : `Unknown error while creating table '${table.name}'`
+            message: 'Database operation failed'
         };
     }
 }
@@ -263,10 +275,11 @@ export async function createRolePermissions(
         };
 
     } catch(error: unknown) {
+        logger.error('createRolePermissions', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : `Unknown error while creating role permissions`
+            message: 'Database operation failed'
         };
     }
 }
@@ -310,10 +323,11 @@ export async function createDatabaseSchema(
         };
 
     } catch(error: unknown) {
+        logger.error('createDatabaseSchema', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while creating database schema'
+            message: 'Database operation failed'
         };
     }
 }
@@ -516,8 +530,10 @@ export async function dynamicSendData(client: DatabaseClient, table: string, col
         }
 
         const placeholders = data.map((_, index) => `$${index + 1}`).join(', ');
+        const escapedTableName = escapeIdentifier(table);
+        const escapedColumns = columns.map(col => escapeIdentifier(col)).join(', ');
 
-        const query = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+        const query = `INSERT INTO ${escapedTableName} (${escapedColumns}) VALUES (${placeholders}) RETURNING *`;
         
         const result = await client.query(query, data);
         
@@ -528,10 +544,11 @@ export async function dynamicSendData(client: DatabaseClient, table: string, col
         };
 
     } catch(error: unknown) {
+        logger.error('dynamicSendData', error, { table });
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : `Unknown error while sending data to table '${table}'`
+            message: 'Database operation failed'
         };
     }
 }
@@ -573,11 +590,12 @@ export async function updateRowById(client: DatabaseClient, table: string, colum
             };
         }
 
-        const setClause = columns.map((col, index) => `${col} = $${index + 1}`).join(', ');
+        const escapedTableName = escapeIdentifier(table);
+        const setClause = columns.map((col, index) => `${escapeIdentifier(col)} = $${index + 1}`).join(', ');
 
         const queryString = tenantTableValidation.status
-            ? `UPDATE ${table} SET ${setClause} WHERE id = $${columns.length + 1} AND account_id = $${columns.length + 2}`
-            : `UPDATE ${table} SET ${setClause} WHERE id = $${columns.length + 1}`;
+            ? `UPDATE ${escapedTableName} SET ${setClause} WHERE id = $${columns.length + 1} AND account_id = $${columns.length + 2}`
+            : `UPDATE ${escapedTableName} SET ${setClause} WHERE id = $${columns.length + 1}`;
 
         const result = await client.query(
             queryString,
@@ -591,10 +609,11 @@ export async function updateRowById(client: DatabaseClient, table: string, colum
         };
 
     } catch(error: unknown) {
+        logger.error('updateRowById', error, { table, id });
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : `Unknown error while updating row with id '${id}' in table '${table}'`
+            message: 'Database operation failed'
         };
     }
 }
@@ -623,9 +642,10 @@ export async function getAllRowsFromTable(client: DatabaseClient, table: string,
             };
         }
 
+        const escapedTableName = escapeIdentifier(table);
         const queryString = tenantTableValidation.status
-            ? `SELECT * FROM ${table} WHERE account_id = $1 ORDER BY created_at DESC`
-            : `SELECT * FROM ${table} ORDER BY created_at DESC`;
+            ? `SELECT * FROM ${escapedTableName} WHERE account_id = $1 ORDER BY created_at DESC`
+            : `SELECT * FROM ${escapedTableName} ORDER BY created_at DESC`;
 
         const result = await client.query(
             queryString,
@@ -639,10 +659,11 @@ export async function getAllRowsFromTable(client: DatabaseClient, table: string,
         };
 
     } catch(error: unknown) {
+        logger.error('getAllRowsFromTable', error, { table });
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : `Unknown error while getting all rows from table '${table}'`
+            message: 'Database operation failed'
         };
     }
 }
@@ -671,9 +692,10 @@ export async function getRowById(client: DatabaseClient, table: string, id: numb
             };
         }
 
+        const escapedTableName = escapeIdentifier(table);
         const queryString = tenantTableValidation.status
-            ? `SELECT * FROM ${table} WHERE id = $1 AND account_id = $2`
-            : `SELECT * FROM ${table} WHERE id = $1`;
+            ? `SELECT * FROM ${escapedTableName} WHERE id = $1 AND account_id = $2`
+            : `SELECT * FROM ${escapedTableName} WHERE id = $1`;
 
         const result = await client.query(
             queryString,
@@ -723,9 +745,11 @@ export async function getRowsByColumnValue(client: DatabaseClient, table: string
             };
         }
 
+        const escapedTableName = escapeIdentifier(table);
+        const escapedColumnName = escapeIdentifier(column);
         const queryString = tenantTableValidation.status
-            ? `SELECT * FROM ${table} WHERE ${column} = $1 AND account_id = $2`
-            : `SELECT * FROM ${table} WHERE ${column} = $1`;
+            ? `SELECT * FROM ${escapedTableName} WHERE ${escapedColumnName} = $1 AND account_id = $2`
+            : `SELECT * FROM ${escapedTableName} WHERE ${escapedColumnName} = $1`;
 
         const result = await client.query(
             queryString,
@@ -780,9 +804,10 @@ export async function deleteRowById(client: DatabaseClient, table: string, id: n
             };
         }
 
+        const escapedTableName = escapeIdentifier(table);
         const queryString = tenantTableValidation.status
-            ? `DELETE FROM ${table} WHERE id = $1 AND account_id = $2`
-            : `DELETE FROM ${table} WHERE id = $1`;
+            ? `DELETE FROM ${escapedTableName} WHERE id = $1 AND account_id = $2`
+            : `DELETE FROM ${escapedTableName} WHERE id = $1`;
 
         const result = await client.query(
             queryString,
@@ -796,10 +821,11 @@ export async function deleteRowById(client: DatabaseClient, table: string, id: n
         };
 
     } catch(error: unknown) {
+        logger.error('deleteRowById', error, { table, id });
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : `Unknown error while deleting row with id '${id}' from table '${table}'`
+            message: 'Database operation failed'
         };
     }
 }

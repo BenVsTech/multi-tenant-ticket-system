@@ -3,7 +3,7 @@
 import { databaseConfiguration } from "@/utils/local/db";
 import { connectToDatabase, closeDatabaseConnection, DatabaseClient } from "@/lib/core/database";
 import { DataReturnObject } from "@/types/helper";
-import { handleCloseDatabaseConnections } from "@/lib/core/helper";
+import { handleCloseDatabaseConnections, logger } from "@/lib/core/helper";
 import { TestUser } from "@/types/database";
 import { checkIfDatabaseExists, createDatabase, createDatabaseSchema, getRowsByColumnValue } from "@/lib/core/database/queries";
 import { permissions, roles, rolePermissions } from "@/utils/role";
@@ -98,10 +98,11 @@ export async function createLocalDatabase(): Promise<DataReturnObject<boolean>> 
         };
 
     } catch(error: unknown) {
+        logger.error('createLocalDatabase', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while creating local database'
+            message: 'Database operation failed'
         };
     } finally{
         await handleCloseDatabaseConnections(temporaryDbClient, dbClient);
@@ -197,10 +198,11 @@ export async function createTestUser(user: TestUser): Promise<DataReturnObject<b
         };
 
     } catch(error: unknown) {
+        logger.error('createTestUser', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error while creating test user'
+            message: 'Database operation failed'
         };
     }
     finally{

@@ -54,10 +54,11 @@ export async function getRedisClient(): Promise<DataReturnObject<RedisClientType
             message: 'Redis Client Connected'
         };
     } catch (error: unknown) {
+        logger.error('getRedisClient', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: 'Failed to connect to Redis'
         };
     }
 }
@@ -74,10 +75,11 @@ export async function closeRedisConnection(): Promise<DataReturnObject<boolean>>
             message: 'Redis Client Closed'
         };
     } catch (error: unknown) {
+        logger.error('closeRedisConnection', error);
         return {
             status: false,
             data: false,
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: 'Failed to close Redis connection'
         };
     }
 }

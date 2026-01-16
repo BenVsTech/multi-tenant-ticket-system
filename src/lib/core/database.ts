@@ -47,9 +47,9 @@ function getPool(temporary: boolean): Pool {
                 database: 'postgres',
                 password: password!,
                 port: port,
-                max: 50,
+                max: 20,
                 idleTimeoutMillis: 10000,
-                connectionTimeoutMillis: 2000,
+                connectionTimeoutMillis: 10000,
                 maxUses: 1000,
                 application_name: "internal-ticket-system",
             });
@@ -67,9 +67,9 @@ function getPool(temporary: boolean): Pool {
                 database: database!,
                 password: password!,
                 port: port,
-                max: 50,
+                max: 20,
                 idleTimeoutMillis: 10000,
-                connectionTimeoutMillis: 2000,
+                connectionTimeoutMillis: 10000,
                 maxUses: 1000,
                 application_name: "internal-ticket-system",
             });
