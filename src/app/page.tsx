@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { sections } from "@/types/component";
 import styles from "./page.module.css";
 import Settings from "@/components/settings";
+import RenderSection from "@/components/renderSection";
 
 // Exports
 
@@ -14,13 +15,12 @@ export default function Home() {
 
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [content, setContent] = useState<React.ReactNode>(<div>Home</div>);
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [openSections, setOpenSections] = useState<sections>({management: false, admin: false, account: false, system: false});
   const [permissions, setPermissions] = useState<string[]>([]);
-  
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -128,7 +128,7 @@ export default function Home() {
           />
         </div>
         <div className={`${styles['width-100']} ${styles['height-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']}`}>
-          {content}
+          <RenderSection setup={{ accountId: Number(selectedAccount), permissions: permissions, reference: selectedContent || 'home' }} />
         </div>
       </div>
     </div>

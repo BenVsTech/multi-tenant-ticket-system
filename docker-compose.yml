@@ -5,10 +5,6 @@ services:
     ports:
       - "6379:6379"
     restart: unless-stopped
-    # Redis password configuration:
-    # - If REDIS_PASSWORD is set in .env or environment, Redis will require authentication
-    # - For production, always set REDIS_PASSWORD
-    # - For development, password is optional
     command: >
       sh -c "
       if [ -n \"$$REDIS_PASSWORD\" ]; then
@@ -20,8 +16,6 @@ services:
     volumes:
       - redis-data:/data
     environment:
-      # Optional: Set REDIS_PASSWORD in .env file or environment
-      # If set, Redis will require authentication
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
 
 volumes:

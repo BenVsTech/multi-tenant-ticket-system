@@ -13,3 +13,11 @@ export interface SettingsProps {
     }
 }
 
+export interface RenderSectionProps {
+    setup: {
+        accountId: number | null;
+        permissions: string[];
+        reference: string;
+    }
+}
+
