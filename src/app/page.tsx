@@ -20,11 +20,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [openSections, setOpenSections] = useState<sections>({management: false, admin: false, account: false, system: false});
   const [permissions, setPermissions] = useState<string[]>([]);
-
-  useEffect(() => {
-    console.log('permissions', permissions);
-  }, [permissions]);
-
+  
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");

@@ -22,7 +22,7 @@ export const databaseConfiguration: DatabaseConfiguration = {
         RETURNS TRIGGER AS $$
         BEGIN
             IF NEW.password IS NOT NULL THEN
-                NEW.password = crypt(NEW.password, gen_salt('bf'));
+                NEW.password = crypt(NEW.password, gen_salt('bf', 12));
             END IF;
             RETURN NEW;
         END;

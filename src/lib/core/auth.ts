@@ -37,7 +37,14 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const emailKey = `auth:${credentials.email.toLowerCase()}`;
+        const normalizedEmail = credentials.email.toLowerCase().trim();
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(normalizedEmail)) {
+          return null;
+        }
+
+        const emailKey = `auth:${normalizedEmail}`;
         const rateLimitResult = await authLimiter.check(5, emailKey);
 
         if (!rateLimitResult.success) {
@@ -79,7 +86,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 2 * 60 * 60,
+    maxAge: 60 * 60,
   },
   pages: {
     signIn: "/login",

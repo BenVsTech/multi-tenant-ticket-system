@@ -95,10 +95,11 @@ export async function connectToDatabase(temporary: boolean = false): Promise<Dat
             message: "Connected to database"
         };
     } catch (error: unknown) {
+        logger.error('DatabaseConnection', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : "Unknown error"
+            message: "Failed to connect to database"
         };
     }
 }
@@ -113,10 +114,11 @@ export async function closeDatabaseConnection(client: DatabaseClient): Promise<D
             message: "Closed database connection"
         };
     } catch (error: unknown) {
+        logger.error('DatabaseConnectionClose', error);
         return {
             status: false,
             data: null,
-            message: error instanceof Error ? error.message : "Unknown error"
+            message: "Failed to close database connection"
         };
     }
 }
