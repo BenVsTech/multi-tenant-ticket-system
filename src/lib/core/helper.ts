@@ -3,6 +3,7 @@
 import { DatabaseClient } from "./database";
 import { closeDatabaseConnection } from "./database";
 import { sensitiveFieldPatterns } from "@/utils/constants";
+import { DataReturnObject } from "@/types/helper";
 
 // Functions
 
@@ -139,4 +140,23 @@ export const logger = {
     warning: logWarning,
     info: logInfo,
 };
+
+export async function generatePassword(): Promise<DataReturnObject<string>> {
+    try{
+
+        const password = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        return {
+            status: true,
+            data: password,
+            message: 'Password generated successfully'
+        };
+
+    } catch(error: unknown) {
+        return {
+            status: false,
+            data: null,
+            message: error instanceof Error ? error.message : 'Unknown error while generating password'
+        };
+    }
+}
 

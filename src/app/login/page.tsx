@@ -5,15 +5,20 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../page.module.css";
+import Form from "@/components/form";
+import { FormDataTypes } from "@/types/component";
+import { newUserForm } from "@/utils/form/newUser";
 
 // Exports
 
 export default function LoginPage() {
+
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +44,50 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const handleSignUp = async (data: FormDataTypes) => {
+    try{
+
+      console.log('sign up data:', data);
+
+      const response = await fetch(`/api/accounts/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if(!response.ok) {
+        console.error('Failed to create user account');
+        return;
+      }
+
+      const responseData = await response.json();
+      
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setShowSignUp(false);
+    }
+  }
+
+  if(showSignUp) {
+    return (
+      <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-center']} ${styles['secondary-background']}`}>
+        <div className={`${styles['max-width-400']} ${styles['pd-all-round']} ${styles['primary-background']}`}>
+          <Form
+            setup={{
+              api: null,
+              content: newUserForm,
+            }}
+            onClose={() => setShowSignUp(false)}
+            onSubmit={(data: FormDataTypes) => handleSignUp(data)}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-center']} ${styles['secondary-background']}`}>
@@ -95,6 +144,11 @@ export default function LoginPage() {
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
+
+        <div className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']}`}>
+          <p className={styles['description-text']}>Don't have an account? <span className={`${styles['clickable']} ${styles['clickable-text']}`}onClick={() => setShowSignUp(true)}>Sign up</span></p>
+        </div>
+
       </form>
     </div>
   );

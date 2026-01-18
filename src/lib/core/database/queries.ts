@@ -334,6 +334,9 @@ export async function createDatabaseSchema(
 
 export async function checkPassword(client: DatabaseClient, email: string, password: string): Promise<DataReturnObject<string>> {
     try{
+
+        let passwordHash: string;
+        let userId: string | null = null;
         
         const userResult = await getRowsByColumnValue(
             client,
@@ -341,10 +344,6 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
             'email',
             email
         );
-        
-        let passwordHash: string;
-        let userId: string | null = null;
-        
         if (!userResult.status || !userResult.data || userResult.data.length === 0) {
             passwordHash = '$2a$10$dummyhashfordummyuserenumerationprevention';
         } else {
@@ -357,7 +356,6 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
             `SELECT crypt($1, $2) as computed_hash`,
             [password, passwordHash]
         );
-        
         if (
             !passwordCheckResult.rows ||
             passwordCheckResult.rows.length === 0 ||
@@ -371,7 +369,6 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
         }
 
         const computedHash = passwordCheckResult.rows[0].computed_hash;
-        
         const storedHashBuffer = Buffer.from(passwordHash, 'utf8');
         const computedHashBuffer = Buffer.from(computedHash, 'utf8');
         
@@ -383,7 +380,6 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
                 passwordsMatch = false;
             }
         }
-        
         if (!passwordsMatch || userId === null) {
             return {
                 status: false,
@@ -431,7 +427,7 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
           const user = userResult.data;
 
           const userAccountResult = await getRowsByColumnValue(client, 'user_account', 'user_id', user.id.toString());
-          if (!userAccountResult.status || !userAccountResult.data || userAccountResult.data.length === 0) {
+          if (!userAccountResult.status) {
             return {
                 status: false,
                 data: null,
@@ -439,7 +435,9 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
             };
           }
 
-          const userAccounts = userAccountResult.data;
+          const userAccounts = userAccountResult.data && userAccountResult.data.length > 0 
+            ? userAccountResult.data 
+            : [];
 
           const roles = (await Promise.all(userAccounts.map(async (userAccount: any) => {
 
