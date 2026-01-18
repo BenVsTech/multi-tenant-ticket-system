@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { connectToDatabase, closeDatabaseConnection, DatabaseClient } from "@/lib/core/database";
-import { authorizeUser } from "@/lib/core/database/queries";
+import { authorizeUser, getRowById } from "@/lib/core/database/queries";
 import { authLimiter } from "@/lib/core/rateLimit";
 import { logger } from "./helper";
 
@@ -71,6 +71,7 @@ export const authOptions: NextAuthOptions = {
             email: authorizeUserResult.data.email,
             name: authorizeUserResult.data.name,
             roles: authorizeUserResult.data.roles,
+            mustChangePassword: authorizeUserResult.data.mustChangePassword || false,
           };
 
         } catch (error) {
@@ -92,13 +93,37 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
         token.roles = user.roles;
+        token.mustChangePassword = (user as any).mustChangePassword || false;
       }
+      
+      if (trigger === "update" && token.id) {
+        let dbClient: DatabaseClient | null = null;
+        try {
+          const connection = await connectToDatabase(false);
+          if (connection.status && connection.data) {
+            dbClient = connection.data;
+            const userId = parseInt(token.id as string);
+            const userResult = await getRowById(dbClient, 'users', userId);
+            
+            if (userResult.status && userResult.data) {
+              token.mustChangePassword = userResult.data.must_change_password === true;
+            }
+          }
+        } catch (error) {
+          logger.error('JWT Update', error);
+        } finally {
+          if (dbClient) {
+            await closeDatabaseConnection(dbClient);
+          }
+        }
+      }
+      
       return token;
     },
     async session({ session, token }) {
@@ -107,6 +132,7 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.roles = token.roles;
+        session.user.mustChangePassword = (token.mustChangePassword as boolean) || false;
       }
       return session;
     },

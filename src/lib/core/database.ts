@@ -106,7 +106,9 @@ export async function connectToDatabase(temporary: boolean = false): Promise<Dat
 
 export async function closeDatabaseConnection(client: DatabaseClient): Promise<DataReturnObject<void>> {
     try {
-        client.release();
+        if (client && typeof client.release === 'function') {
+            client.release();
+        }
         
         return {
             status: true,
@@ -114,6 +116,15 @@ export async function closeDatabaseConnection(client: DatabaseClient): Promise<D
             message: "Closed database connection"
         };
     } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('already been released')) {
+            return {
+                status: true,
+                data: null,
+                message: "Connection already released"
+            };
+        }
+        
         logger.error('DatabaseConnectionClose', error);
         return {
             status: false,

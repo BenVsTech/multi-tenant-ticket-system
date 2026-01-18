@@ -16,6 +16,7 @@ declare module "next-auth" {
         role: string;
         permissions: string[];
       }[];
+      mustChangePassword?: boolean;
     };
   }
 
@@ -29,6 +30,7 @@ declare module "next-auth" {
       role: string;
       permissions: string[];
     }[];
+    mustChangePassword?: boolean;
   }
 }
 
@@ -43,5 +45,6 @@ declare module "next-auth/jwt" {
       role: string;
       permissions: string[];
     }[];
+    mustChangePassword?: boolean;
   }
 }

@@ -403,7 +403,7 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
     }
 }
 
-export async function authorizeUser(client: DatabaseClient, email: string, password: string): Promise<DataReturnObject<{id: number, email: string, name: string, roles: {accountId: number, accountName: string, role: string, permissions: string[]}[] }>> {
+export async function authorizeUser(client: DatabaseClient, email: string, password: string): Promise<DataReturnObject<{id: number, email: string, name: string, roles: {accountId: number, accountName: string, role: string, permissions: string[]}[], mustChangePassword: boolean }>> {
     try{
 
         const passwordCheckResult = await checkPassword(client, email, password);
@@ -425,6 +425,7 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
           }
 
           const user = userResult.data;
+          const mustChangePassword = user.must_change_password === true;
 
           const userAccountResult = await getRowsByColumnValue(client, 'user_account', 'user_id', user.id.toString());
           if (!userAccountResult.status) {
@@ -494,7 +495,8 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
                 id: user.id,
                 email: user.email,
                 name: user.name,
-                roles: roles
+                roles: roles,
+                mustChangePassword: mustChangePassword
             },
             message: 'User authorized successfully'
         }

@@ -8,6 +8,7 @@ import { sections } from "@/types/component";
 import styles from "./page.module.css";
 import Settings from "@/components/settings";
 import RenderSection from "@/components/renderSection";
+import AccountSelect from "@/components/accountSelect";
 
 // Exports
 
@@ -22,10 +23,10 @@ export default function Home() {
   const [permissions, setPermissions] = useState<string[]>([]);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" || session?.user?.mustChangePassword) {
       router.push("/login");
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   useEffect(() => {
     if (session && selectedAccount) {
@@ -59,9 +60,8 @@ export default function Home() {
       )}
 
       <ul className={`${styles['width-200']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['primary-background']} ${styles['text-center']}`}>
-        <li className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['pd-all-round']}`}>
-          <img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} />
-        </li>
+
+        <li className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['pd-all-round']}`}><img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} /></li>
         <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'home' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('home')}>Home</li>
         <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={() => permissions.includes('ticket.view') && setSelectedContent('my-tickets')}>My Tickets</li>
         <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'performance' ? styles['selected'] : ''}`} onClick={() => permissions.includes('performance.view') && setSelectedContent('performance')}>Performance</li>
@@ -106,20 +106,7 @@ export default function Home() {
 
       <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-center']} ${styles['align-center']} ${styles['secondary-background']}`}>
         <div className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['row-container']} ${styles['content-space-between']} ${styles['align-center']} ${styles['primary-background']}`}>
-          <select 
-            className={`${styles['input-structure']}`} 
-            name="accounts" 
-            id="accounts"
-            value={selectedAccount || ''}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-          >
-            <option value="">Select Account</option>
-            {session.user.roles.map((role) => (
-              <option key={role.accountId} value={role.accountId.toString()}>
-                {role.accountName} ({role.role})
-              </option>
-            ))}
-          </select>
+          <AccountSelect setup={{ onAccountChange: (account: string) => setSelectedAccount(account), accounts: session.user.roles.map((role) => ({ name: role.accountName, id: role.accountId.toString() })) }} />
           <img 
             src="assets/settings.png" 
             alt="Settings" 

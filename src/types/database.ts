@@ -25,6 +25,7 @@ export interface TestUser {
         name: string;
         email: string;
         password: string;
+        mustChangePassword: boolean;
     };
     account: {
         name: string;

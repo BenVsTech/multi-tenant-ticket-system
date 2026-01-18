@@ -66,3 +66,10 @@ export interface FormProps {
     onSubmit: (data: FormDataTypes) => void;
 }
 
+export interface AccountSelectProps {
+    setup: {
+        onAccountChange: (account: string) => void;
+        accounts: {name: string, id: string}[];
+    }
+}
+
