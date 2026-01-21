@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { connectToDatabase, closeDatabaseConnection, DatabaseClient } from "@/lib/core/database";
-import { authorizeUser, getRowById } from "@/lib/core/database/queries";
+import { authorizeUser, getRowById, getUserRoles } from "@/lib/core/database/queries";
 import { authLimiter } from "@/lib/core/rateLimit";
 import { logger } from "./helper";
 
@@ -113,6 +113,10 @@ export const authOptions: NextAuthOptions = {
             
             if (userResult.status && userResult.data) {
               token.mustChangePassword = userResult.data.must_change_password === true;
+              const rolesResult = await getUserRoles(dbClient, userId);
+              if (rolesResult.status && rolesResult.data) {
+                token.roles = rolesResult.data;
+              }
             }
           }
         } catch (error) {

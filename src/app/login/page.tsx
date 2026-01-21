@@ -84,7 +84,7 @@ export default function LoginPage() {
   const handleSignUp = async (data: FormDataTypes) => {
     try{
 
-      const response = await fetch(`/api/user-accounts/`, {
+      const response = await fetch(`/api/user-accounts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,6 +98,11 @@ export default function LoginPage() {
       }
 
       const responseData = await response.json();
+
+      if(!responseData.status || !responseData.data) {
+        console.error('Failed to create user account:', responseData.message);
+        return;
+      }
       
     } catch(err) {
       console.error(err);

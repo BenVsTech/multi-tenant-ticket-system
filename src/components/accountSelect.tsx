@@ -27,6 +27,7 @@ export default function AccountSelect({setup}: AccountSelectProps) {
                 {account.name}
               </option>
             ))}
+            <option value="new">Create New Account</option>
         </select>
     )
 }

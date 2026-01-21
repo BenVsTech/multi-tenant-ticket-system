@@ -403,6 +403,84 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
     }
 }
 
+export async function getUserRoles(client: DatabaseClient, userId: number): Promise<DataReturnObject<{accountId: number, accountName: string, role: string, permissions: string[]}[]>> {
+    try {
+        const userAccountResult = await getRowsByColumnValue(client, 'user_account', 'user_id', userId.toString());
+        if (!userAccountResult.status) {
+            return {
+                status: false,
+                data: null,
+                message: 'Failed to fetch user accounts'
+            };
+        }
+
+        const userAccounts = userAccountResult.data && userAccountResult.data.length > 0 
+            ? userAccountResult.data 
+            : [];
+
+        const roles = (await Promise.all(userAccounts.map(async (userAccount: any) => {
+
+            let permissions: string[] = [];
+
+            if (!client) {
+                return null;
+            }
+
+            const roleResult = await getRowById(client, 'role', userAccount.role_id);
+            if (!roleResult.status || !roleResult.data) {
+                return null;
+            }
+
+            const role = roleResult.data;
+
+            const rolePermissionsResult = await getRowsByColumnValue(client, 'role_permission', 'role_id', role.id.toString());
+            if (!rolePermissionsResult.status || !rolePermissionsResult.data) {
+                return null;
+            }
+
+            const permissionIds = rolePermissionsResult.data.map((rolePermission: any) => rolePermission.permission_id);
+
+            for (const permissionId of permissionIds) {
+
+                const permissionResult = await getRowById(client, 'permission', permissionId);
+                if (!permissionResult.status || !permissionResult.data) {
+                    continue;
+                }
+
+                const permission = permissionResult.data;
+                permissions.push(permission.name);
+            }
+
+            const accountResult = await getRowById(client, 'account', userAccount.account_id);
+            if (!accountResult.status || !accountResult.data) {
+                return null;
+            }
+
+            const account = accountResult.data;
+
+            return {
+                accountId: userAccount.account_id,
+                accountName: account.name,
+                role: role.name,
+                permissions: permissions,
+            };
+
+        }))).filter((role): role is NonNullable<typeof role> => role !== null);
+
+        return {
+            status: true,
+            data: roles,
+            message: 'User roles fetched successfully'
+        };
+    } catch(error: unknown) {
+        return {
+            status: false,
+            data: null,
+            message: 'Failed to fetch user roles'
+        };
+    }
+}
+
 export async function authorizeUser(client: DatabaseClient, email: string, password: string): Promise<DataReturnObject<{id: number, email: string, name: string, roles: {accountId: number, accountName: string, role: string, permissions: string[]}[], mustChangePassword: boolean }>> {
     try{
 
@@ -427,8 +505,8 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
           const user = userResult.data;
           const mustChangePassword = user.must_change_password === true;
 
-          const userAccountResult = await getRowsByColumnValue(client, 'user_account', 'user_id', user.id.toString());
-          if (!userAccountResult.status) {
+          const rolesResult = await getUserRoles(client, user.id);
+          if (!rolesResult.status || !rolesResult.data) {
             return {
                 status: false,
                 data: null,
@@ -436,58 +514,7 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
             };
           }
 
-          const userAccounts = userAccountResult.data && userAccountResult.data.length > 0 
-            ? userAccountResult.data 
-            : [];
-
-          const roles = (await Promise.all(userAccounts.map(async (userAccount: any) => {
-
-            let permissions: string[] = [];
-
-            if (!client) {
-              return null;
-            }
-
-            const roleResult = await getRowById(client, 'role', userAccount.role_id);
-            if (!roleResult.status || !roleResult.data) {
-              return null;
-            }
-
-            const role = roleResult.data;
-
-            const rolePermissionsResult = await getRowsByColumnValue(client, 'role_permission', 'role_id', role.id.toString());
-            if (!rolePermissionsResult.status || !rolePermissionsResult.data) {
-              return null;
-            }
-
-            const permissionIds = rolePermissionsResult.data.map((rolePermission: any) => rolePermission.permission_id);
-
-            for (const permissionId of permissionIds) {
-
-            const permissionResult = await getRowById(client, 'permission', permissionId);
-            if (!permissionResult.status || !permissionResult.data) {
-                continue;
-              }
-
-              const permission = permissionResult.data;
-              permissions.push(permission.name);
-            }
-
-            const accountResult = await getRowById(client, 'account', userAccount.account_id);
-            if (!accountResult.status || !accountResult.data) {
-              return null;
-            }
-
-            const account = accountResult.data;
-
-            return {
-              accountId: userAccount.account_id,
-              accountName: account.name,
-              role: role.name,
-              permissions: permissions,
-            };
-
-        }))).filter((role): role is NonNullable<typeof role> => role !== null)
+          const roles = rolesResult.data;
 
         return {
             status: true,

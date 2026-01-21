@@ -1,7 +1,7 @@
 // Imports
 
 'use client';
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { sections } from "@/types/component";
@@ -9,12 +9,14 @@ import styles from "./page.module.css";
 import Settings from "@/components/settings";
 import RenderSection from "@/components/renderSection";
 import AccountSelect from "@/components/accountSelect";
+import Form from "@/components/form";
+import { accountForm } from "@/utils/form/account";
 
 // Exports
 
 export default function Home() {
 
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
@@ -50,6 +52,55 @@ export default function Home() {
 
   if (status === "unauthenticated" || !session) {
     return null;
+  }
+
+  const createAccount = async (data: any) => {
+    try{
+
+      const response = await fetch(`/api/accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if(!response.ok) {
+        console.error('Failed to create user account');
+        return;
+      }
+
+      const responseData = await response.json();
+
+      if(!responseData.status || !responseData.data) {
+        console.error('Failed to create account:', responseData.message);
+        return;
+      }
+
+      await update();
+
+    } catch(error: unknown) {
+      console.error('Error creating account:', error);
+    } finally {
+      setSelectedAccount(null);
+    }
+  }
+
+  if(selectedAccount === "new") {
+    return (
+      <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-center']} ${styles['secondary-background']}`}>
+        <div className={`${styles['max-width-400']} ${styles['pd-all-round']} ${styles['primary-background']}`}>
+          <Form 
+            setup={{ 
+              api: null, 
+              content: accountForm 
+            }} 
+            onClose={() => setSelectedAccount(null)} 
+            onSubmit={(data) => createAccount(data)}
+          />
+        </div>
+      </div>
+    )
   }
 
   return (

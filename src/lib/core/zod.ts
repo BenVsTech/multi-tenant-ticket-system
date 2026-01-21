@@ -81,3 +81,8 @@ export const userIdParamSchema = z.object({
     id: z.coerce.number().int().positive('User ID must be a positive integer'),
 });
 
+export const createAccountSchema = z.object({
+    name: z.string().min(1, 'Name is required').max(100),
+    description: z.string().min(1, 'Description is required').max(255),
+});
+
