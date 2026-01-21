@@ -3,6 +3,8 @@
 import { DatabaseClient } from "./database";
 import { closeDatabaseConnection } from "./database";
 import { sensitiveFieldPatterns } from "@/utils/constants";
+import { DataReturnObject } from "@/types/helper";
+import { NextResponse } from "next/server";
 
 // Functions
 
@@ -89,13 +91,13 @@ export async function handleCloseDatabaseConnections(temporaryDbClient: Database
 
     if (temporaryDbClient) {
         closePromises.push(
-            closeDatabaseConnection(temporaryDbClient).then(() => {})
+            closeDatabaseConnection(temporaryDbClient).then(() => {}).catch(() => {})
         );
     }
 
     if (dbClient) {
         closePromises.push(
-            closeDatabaseConnection(dbClient).then(() => {})
+            closeDatabaseConnection(dbClient).then(() => {}).catch(() => {})
         );
     }
 
@@ -139,4 +141,87 @@ export const logger = {
     warning: logWarning,
     info: logInfo,
 };
+
+export async function generatePassword(): Promise<DataReturnObject<string>> {
+    try{
+
+        const password = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        return {
+            status: true,
+            data: password,
+            message: 'Password generated successfully'
+        };
+
+    } catch(error: unknown) {
+        return {
+            status: false,
+            data: null,
+            message: error instanceof Error ? error.message : 'Unknown error while generating password'
+        };
+    }
+}
+
+function determineErrorStatus(message: string, defaultStatus: number): number {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('required') || 
+        lowerMessage.includes('invalid') || 
+        lowerMessage.includes('validation')) {
+        return 400;
+    }
+    
+    if (lowerMessage.includes('not found') || 
+        lowerMessage.includes('does not exist')) {
+        return 404;
+    }
+    
+    if (lowerMessage.includes('unauthorized') || 
+        lowerMessage.includes('permission') ||
+        lowerMessage.includes('access denied')) {
+        return 403;
+    }
+    
+    if (lowerMessage.includes('database') || 
+        lowerMessage.includes('server') ||
+        lowerMessage.includes('internal')) {
+        return 500;
+    }
+    
+    return defaultStatus;
+}
+
+export function handleApiResponse<T>(
+    result: DataReturnObject<T>,
+    successStatus: number = 200,
+    errorStatus: number = 400
+): NextResponse<DataReturnObject<T>> {
+    if (result.status) {
+        return NextResponse.json(result, { status: successStatus });
+    } else {
+        const status = determineErrorStatus(result.message, errorStatus);
+        return NextResponse.json(result, { status });
+    }
+}
+
+export async function apiHandler<T>(
+    handler: () => Promise<DataReturnObject<T>>,
+    context: string,
+    successStatus: number = 200,
+    errorStatus: number = 400
+): Promise<NextResponse<DataReturnObject<T>>> {
+    try {
+        const result = await handler();
+        return handleApiResponse(result, successStatus, errorStatus);
+    } catch (error: unknown) {
+        logger.error(context, error);
+        
+        const errorResult: DataReturnObject<T> = {
+            status: false,
+            message: error instanceof Error ? error.message : 'Internal server error',
+            data: null
+        };
+        
+        return handleApiResponse(errorResult, 200, 500);
+    }
+}
 

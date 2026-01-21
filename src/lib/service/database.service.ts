@@ -64,6 +64,8 @@ export async function createLocalDatabase(): Promise<DataReturnObject<boolean>> 
                 message: closeTemporaryDatabaseConnection.message
             };
         }
+        
+        temporaryDbClient = null;
 
         const databaseConnection = await connectToDatabase(false);
         if(!databaseConnection.status || !databaseConnection.data) {
@@ -129,8 +131,8 @@ export async function createTestUser(user: TestUser): Promise<DataReturnObject<b
         const sendUserDetailsResult = await dynamicSendData(
             dbClient, 
             'users', 
-            ['name', 'email', 'password'], 
-            [user.details.name, user.details.email, user.details.password]
+            ['name', 'email', 'password', 'must_change_password'], 
+            [user.details.name, user.details.email, user.details.password, user.details.mustChangePassword]
         );
         if(!sendUserDetailsResult.status || !sendUserDetailsResult.data) {
             return {

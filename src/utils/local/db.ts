@@ -140,6 +140,10 @@ export const databaseConfiguration: DatabaseConfiguration = {
                     type: databaseConstants.varchar(255),
                 },
                 {
+                    name: 'must_change_password',
+                    type: databaseConstants.boolean,
+                },
+                {
                     name: 'created_at',
                     type: databaseConstants.defaultTimestamp,
                 },

@@ -1,19 +1,22 @@
 // Imports
 
 'use client';
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { sections } from "@/types/component";
 import styles from "./page.module.css";
 import Settings from "@/components/settings";
 import RenderSection from "@/components/renderSection";
+import AccountSelect from "@/components/accountSelect";
+import Form from "@/components/form";
+import { accountForm } from "@/utils/form/account";
 
 // Exports
 
 export default function Home() {
 
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
@@ -22,10 +25,10 @@ export default function Home() {
   const [permissions, setPermissions] = useState<string[]>([]);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" || session?.user?.mustChangePassword) {
       router.push("/login");
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   useEffect(() => {
     if (session && selectedAccount) {
@@ -51,6 +54,55 @@ export default function Home() {
     return null;
   }
 
+  const createAccount = async (data: any) => {
+    try{
+
+      const response = await fetch(`/api/accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if(!response.ok) {
+        console.error('Failed to create user account');
+        return;
+      }
+
+      const responseData = await response.json();
+
+      if(!responseData.status || !responseData.data) {
+        console.error('Failed to create account:', responseData.message);
+        return;
+      }
+
+      await update();
+
+    } catch(error: unknown) {
+      console.error('Error creating account:', error);
+    } finally {
+      setSelectedAccount(null);
+    }
+  }
+
+  if(selectedAccount === "new") {
+    return (
+      <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-center']} ${styles['secondary-background']}`}>
+        <div className={`${styles['max-width-400']} ${styles['pd-all-round']} ${styles['primary-background']}`}>
+          <Form 
+            setup={{ 
+              api: null, 
+              content: accountForm 
+            }} 
+            onClose={() => setSelectedAccount(null)} 
+            onSubmit={(data) => createAccount(data)}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['row-container']} ${styles['content-start']} ${styles['align-stretch']}`}>
 
@@ -59,9 +111,8 @@ export default function Home() {
       )}
 
       <ul className={`${styles['width-200']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['primary-background']} ${styles['text-center']}`}>
-        <li className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['pd-all-round']}`}>
-          <img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} />
-        </li>
+
+        <li className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['pd-all-round']}`}><img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} /></li>
         <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'home' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('home')}>Home</li>
         <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={() => permissions.includes('ticket.view') && setSelectedContent('my-tickets')}>My Tickets</li>
         <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'performance' ? styles['selected'] : ''}`} onClick={() => permissions.includes('performance.view') && setSelectedContent('performance')}>Performance</li>
@@ -106,20 +157,7 @@ export default function Home() {
 
       <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-center']} ${styles['align-center']} ${styles['secondary-background']}`}>
         <div className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['row-container']} ${styles['content-space-between']} ${styles['align-center']} ${styles['primary-background']}`}>
-          <select 
-            className={`${styles['input-structure']}`} 
-            name="accounts" 
-            id="accounts"
-            value={selectedAccount || ''}
-            onChange={(e) => setSelectedAccount(e.target.value)}
-          >
-            <option value="">Select Account</option>
-            {session.user.roles.map((role) => (
-              <option key={role.accountId} value={role.accountId.toString()}>
-                {role.accountName} ({role.role})
-              </option>
-            ))}
-          </select>
+          <AccountSelect setup={{ onAccountChange: (account: string) => setSelectedAccount(account), accounts: session.user.roles.map((role) => ({ name: role.accountName, id: role.accountId.toString() })) }} />
           <img 
             src="assets/settings.png" 
             alt="Settings" 
