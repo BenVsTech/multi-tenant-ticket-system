@@ -1,7 +1,7 @@
 // Imports
 
 import { NextResponse } from "next/server";
-import { createAccount } from "@/lib/service/account.service";
+import { createAccount, getAccounts } from "@/lib/service/account.service";
 import { apiHandler } from "@/lib/core/helper";
 import { DataReturnObject } from "@/types/helper";
 import { createAccountSchema, validateRequestBody } from "@/lib/core/zod";
@@ -9,6 +9,38 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/core/auth";
 
 // Exports
+
+export async function GET(request: Request): Promise<NextResponse<DataReturnObject<string[][]>>> {
+    return apiHandler<string[][]>(async () => {
+
+        const session = await getServerSession(authOptions);
+        if(!session?.user?.id) {
+            return {
+                status: false,
+                data: null,
+                message: 'Unauthorized'
+            };
+        }
+
+        const userId = parseInt(session.user.id);
+
+        const getAccountsResult = await getAccounts(userId);
+        if(!getAccountsResult.status || !getAccountsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: getAccountsResult.message
+            };
+        }
+
+        return {
+            status: true,
+            data: getAccountsResult.data,
+            message: getAccountsResult.message
+        }
+
+    }, 'GET /api/accounts', 200, 400);
+}
 
 export async function POST(request: Request): Promise<NextResponse<DataReturnObject<boolean>>> {
     return apiHandler<boolean>(async () => {

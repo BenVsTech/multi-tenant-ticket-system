@@ -86,6 +86,15 @@ export const createAccountSchema = z.object({
     description: z.string().min(1, 'Description is required').max(255),
 });
 
+export const updateAccountSchema = z.object({
+    name: z.string().min(1, 'Name must be at least 1 character').max(100),
+    description: z.string().min(1, 'Description must be at least 1 character').max(255),
+}).partial();
+
+export const accountIdParamSchema = z.object({
+    id: z.coerce.number().int().positive('Account ID must be a positive integer'),
+});
+
 export const reportIssueSchema = z.object({
     issueType: z.string().min(1, 'Issue type is required'),
     issueDescription: z.string().min(1, 'Issue description is required'),

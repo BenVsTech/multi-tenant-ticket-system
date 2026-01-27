@@ -5,7 +5,9 @@ import styles from "../app/page.module.css";
 import { RenderSectionProps } from "@/types/component";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import Form from "@/components/form";
+import DataManagement from "@/components/dataManagement";
 import { reportProblemForm } from "@/utils/form/reportProblem";
+import { accountForm } from "@/utils/form/account";
 
 // Exports
 
@@ -19,7 +21,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
 
         setSuccess(false);
         setReference('');
-        
+
         switch (setup.reference) {
             case "home":
                 setContent(
@@ -61,7 +63,19 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 );
                 break;
             case "manage-accounts":
-                setContent(<div>This is the manage accounts section where you can view the accounts you own</div>);
+                setContent(
+                    <DataManagement 
+                        setup={{ 
+                            title: 'Manage Accounts', 
+                            description: 'This is the manage accounts section where you can view the accounts you own', 
+                            createText: 'Create Account', 
+                            deleteStatus: true, 
+                            form: accountForm, 
+                            headers: ['ID', 'Name', 'Description', 'Last Updated', 'Created On'], 
+                            api: '/api/accounts' 
+                        }} 
+                    />
+                );
                 break;
             case "report-problem":
                 setContent(

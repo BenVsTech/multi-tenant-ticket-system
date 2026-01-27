@@ -84,3 +84,25 @@ export interface ChangePasswordFormProps {
     }
 }
 
+export interface DataManagementProps {
+    setup: {
+        title: string;
+        description: string;
+        createText: string;
+        deleteStatus: boolean;
+        form: FormElements;
+        headers: string[];
+        api: string;
+    }
+}
+
+export interface TableProps {
+    setup: {
+        headers: string[];
+        data: string[][];
+        onClick: (id: number) => void;
+        archiveable: boolean;
+        onArchive: (id: number) => void;
+    }
+}
+
