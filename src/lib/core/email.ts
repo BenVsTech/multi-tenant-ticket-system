@@ -50,15 +50,21 @@ export async function createEmailTransporter(): Promise<DataReturnObject<nodemai
     }
 }
 
-export async function sendEmail(transporter: nodemailer.Transporter, to: string, subject: string, text: string): Promise<DataReturnObject<boolean>> {
+export async function sendEmail(transporter: nodemailer.Transporter, to: string, subject: string, text: string, html?: string): Promise<DataReturnObject<boolean>> {
     try{
 
-        const info = await transporter.sendMail({
+        const mailOptions: any = {
             from: `"${emailUser}" <${emailUser}>`,
             to: to,
             subject: subject,
             text: text,
-        });
+        };
+
+        if(html) {
+            mailOptions.html = html;
+        }
+
+        const info = await transporter.sendMail(mailOptions);
 
         if(!info.messageId) {
             return {
@@ -79,6 +85,45 @@ export async function sendEmail(transporter: nodemailer.Transporter, to: string,
             status: false,
             data: null,
             message: error instanceof Error ? error.message : 'Unknown error while sending email'
+        };
+    }
+}
+
+export async function sendEmailToSystem(transporter: nodemailer.Transporter, subject: string, text: string, html?: string): Promise<DataReturnObject<boolean>> {
+    try{
+
+        const mailOptions: any = {
+            from: `"${emailUser}" <${emailUser}>`,
+            to: `${emailUser}`,
+            subject: subject,
+            text: text,
+        };
+
+        if(html) {
+            mailOptions.html = html;
+        }
+
+        const info = await transporter.sendMail(mailOptions);
+
+        if(!info.messageId) {
+            return {
+                status: false,
+                data: null,
+                message: 'Email not sent'
+            };
+        }
+
+        return {
+            status: true,
+            data: true,
+            message: 'Email sent successfully'
+        };
+
+    } catch(error: unknown) {
+        return {
+            status: false,
+            data: null,
+            message: error instanceof Error ? error.message : 'Unknown error while sending email to system'
         };
     }
 }

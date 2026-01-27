@@ -86,3 +86,8 @@ export const createAccountSchema = z.object({
     description: z.string().min(1, 'Description is required').max(255),
 });
 
+export const reportIssueSchema = z.object({
+    issueType: z.string().min(1, 'Issue type is required'),
+    issueDescription: z.string().min(1, 'Issue description is required'),
+});
+
