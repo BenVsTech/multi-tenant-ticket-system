@@ -15,8 +15,8 @@ export default function RenderSection({ setup }: RenderSectionProps) {
             case "home":
                 setContent(
                     <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
-                        <h1 className={`${styles['title-text']}`}>Welcome to the Ticket Management System</h1>
-                        <p className={`${styles['description-text']}`}>In this system you can manage tickets, teams, users, and more.</p>
+                        <h1 className={`${styles['title-text']} ${styles['text-left']}`}>Welcome to the Ticket Management System</h1>
+                        <p className={`${styles['text-left']}`}>In this system you can manage tickets, teams, users, and more.</p>
                     </div>
                 );
                 break;
@@ -38,14 +38,11 @@ export default function RenderSection({ setup }: RenderSectionProps) {
             case "user-management":
                 setContent(<div>This is the user management section where you can manage the users and their details</div>);
                 break;
-            case "account-details":
-                setContent(<div>This is the account details section where you can view the account details</div>);
-                break;
             case "updated-password":
                 setContent(<div>This is the updated password section where you can update your password</div>);
                 break;
-            case "owned-accounts":
-                setContent(<div>This is the owned accounts section where you can view the accounts you own</div>);
+            case "manage-accounts":
+                setContent(<div>This is the manage accounts section where you can view the accounts you own</div>);
                 break;
             case "system-requests":
                 setContent(<div>This is the system requests section where you can view the system requests</div>);
@@ -53,8 +50,8 @@ export default function RenderSection({ setup }: RenderSectionProps) {
             default:
                 setContent(
                     <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
-                        <h1 className={`${styles['title-text']}`}>Welcome to the Ticket Management System</h1>
-                        <p className={`${styles['description-text']}`}>In this system you can manage tickets, teams, users, and more.</p>
+                        <h1 className={`${styles['title-text']} ${styles['text-left']}`}>Welcome to the Ticket Management System</h1>
+                        <p className={`${styles['text-left']}`}>In this system you can manage tickets, teams, users, and more.</p>
                     </div>
                 )
         }

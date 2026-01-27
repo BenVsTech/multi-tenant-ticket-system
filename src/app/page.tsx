@@ -21,8 +21,9 @@ export default function Home() {
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [openSections, setOpenSections] = useState<sections>({management: false, admin: false, account: false, system: false});
+  const [openSections, setOpenSections] = useState<sections>({management: false, admin: false, system: false});
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (status === "unauthenticated" || session?.user?.mustChangePassword) {
@@ -41,6 +42,7 @@ export default function Home() {
       setSelectedContent(null);
     }
   }, [selectedAccount, session]);
+
 
   if (status === "loading") {
     return (
@@ -103,6 +105,15 @@ export default function Home() {
     )
   }
 
+  const handleMenuClick = (content: string | null) => {
+    setSelectedContent(content);
+    setMobileMenuOpen(false);
+  };
+
+  const handleSectionToggle = (section: keyof sections) => {
+    setOpenSections({ ...openSections, [section]: !openSections[section] });
+  };
+
   return (
     <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['row-container']} ${styles['content-start']} ${styles['align-stretch']}`}>
 
@@ -110,46 +121,45 @@ export default function Home() {
         <Settings setup={{ onClose: () => setShowSettings(false) }} />
       )}
 
-      <ul className={`${styles['width-200']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['primary-background']} ${styles['text-center']}`}>
+      {mobileMenuOpen && (
+        <div 
+          className={styles['mobile-menu-overlay']}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <ul className={`${styles['width-200']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['primary-background']} ${styles['text-center']} ${styles['sidebar-nav']} ${mobileMenuOpen ? styles['open'] : ''}`}>
 
         <li className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['pd-all-round']}`}><img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} /></li>
-        <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'home' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('home')}>Home</li>
-        <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={() => permissions.includes('ticket.view') && setSelectedContent('my-tickets')}>My Tickets</li>
-        <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'performance' ? styles['selected'] : ''}`} onClick={() => permissions.includes('performance.view') && setSelectedContent('performance')}>Performance</li>
+        <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'home' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('home'); }}>Home</li>
+        <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('ticket.view') && handleMenuClick('my-tickets'); }}>My Tickets</li>
+        <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'performance' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('performance.view') && handleMenuClick('performance'); }}>Performance</li>
 
-        <li className={`${styles['pd-all-round']} ${permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={() => (permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view')) && setOpenSections({ ...openSections, management: !openSections.management })}>Management</li>
+        <li className={`${styles['pd-all-round']} ${permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={(e) => { e.stopPropagation(); (permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view')) && handleSectionToggle('management'); }}>Management</li>
 
         {openSections.management && (
           <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
-            <li className={`${styles['pd-all-round']} ${permissions.includes('team.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'teams' ? styles['selected'] : ''}`} onClick={() => permissions.includes('team.view') && setSelectedContent('teams')}>Teams</li>
-            <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'tickets' ? styles['selected'] : ''}`} onClick={() => permissions.includes('ticket.view') && setSelectedContent('tickets')}>Tickets</li>
-            <li className={`${styles['pd-all-round']} ${permissions.includes('comment.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'comments' ? styles['selected'] : ''}`} onClick={() => permissions.includes('comment.view') && setSelectedContent('comments')}>Comments</li>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('team.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'teams' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('team.view') && handleMenuClick('teams'); }}>Teams</li>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'tickets' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('ticket.view') && handleMenuClick('tickets'); }}>Tickets</li>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('comment.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'comments' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('comment.view') && handleMenuClick('comments'); }}>Comments</li>
           </ul>
         )}
 
-        <li className={`${styles['pd-all-round']} ${permissions.includes('user.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={() => permissions.includes('user.view') && setOpenSections({ ...openSections, admin: !openSections.admin })}>Admin</li>
+        <li className={`${styles['pd-all-round']} ${permissions.includes('user.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={(e) => { e.stopPropagation(); permissions.includes('user.view') && handleSectionToggle('admin'); }}>Admin</li>
 
         {openSections.admin && (
           <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
-            <li className={`${styles['pd-all-round']} ${permissions.includes('user.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'user-management' ? styles['selected'] : ''}`} onClick={() => permissions.includes('user.view') && setSelectedContent('user-management')}>User Management</li>
+            <li className={`${styles['pd-all-round']} ${permissions.includes('user.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'user-management' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('user.view') && handleMenuClick('user-management'); }}>User Management</li>
           </ul>
         )}
 
-        <li className={`${styles['pd-all-round']} ${permissions.includes('account.manage') ? styles['clickable'] : styles['un-clickable']}`} onClick={() => permissions.includes('account.manage') && setOpenSections({ ...openSections, account: !openSections.account })}>Account</li>
-
-        {openSections.account && (
-          <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
-            <li className={`${styles['pd-all-round']} ${permissions.includes('account.manage') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'account-details' ? styles['selected'] : ''}`} onClick={() => permissions.includes('account.manage') && setSelectedContent('account-details')}>Account Details</li>
-          </ul>
-        )}
-
-        <li className={`${styles['pd-all-round']} ${styles['clickable']}`} onClick={() => setOpenSections({ ...openSections, system: !openSections.system })}>System</li>
+        <li className={`${styles['pd-all-round']} ${styles['clickable']}`} onClick={(e) => { e.stopPropagation(); handleSectionToggle('system'); }}>System</li>
 
         {openSections.system && (
           <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
-            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'updated-password' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('updated-password')}>Updated Password</li>
-            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'owned-accounts' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('owned-accounts')}>Owned Accounts</li>
-            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'system-requests' ? styles['selected'] : ''}`} onClick={() => setSelectedContent('system-requests')}>System Requests</li>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'updated-password' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('updated-password'); }}>Updated Password</li>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'manage-accounts' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('manage-accounts'); }}>Manage Accounts</li>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'system-requests' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('system-requests'); }}>System Requests</li>
           </ul>
         )}
 
@@ -157,7 +167,20 @@ export default function Home() {
 
       <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-center']} ${styles['align-center']} ${styles['secondary-background']}`}>
         <div className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['row-container']} ${styles['content-space-between']} ${styles['align-center']} ${styles['primary-background']}`}>
-          <AccountSelect setup={{ onAccountChange: (account: string) => setSelectedAccount(account), accounts: session.user.roles.map((role) => ({ name: role.accountName, id: role.accountId.toString() })) }} />
+          <div className={`${styles['width-100']} ${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['gap-10']}`}>
+            <button 
+              className={`${styles['mobile-menu-button']} ${styles['clickable']}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMobileMenuOpen(!mobileMenuOpen);
+              }}
+              aria-label="Toggle menu"
+              type="button"
+            >
+              ☰
+            </button>
+            <AccountSelect setup={{ onAccountChange: (account: string) => setSelectedAccount(account), accounts: session.user.roles.map((role) => ({ name: role.accountName, id: role.accountId.toString() })) }} />
+          </div>
           <img 
             src="assets/settings.png" 
             alt="Settings" 
