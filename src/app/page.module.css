@@ -115,6 +115,10 @@
     cursor: not-allowed;
 }
 
+.scrollable {
+    overflow-y: scroll;
+}
+
 .selected {
     background-color: #0000ff;
     color: #ffffff;

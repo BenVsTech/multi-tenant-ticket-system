@@ -44,8 +44,8 @@ export default function RenderSection({ setup }: RenderSectionProps) {
             case "manage-accounts":
                 setContent(<div>This is the manage accounts section where you can view the accounts you own</div>);
                 break;
-            case "system-requests":
-                setContent(<div>This is the system requests section where you can view the system requests</div>);
+            case "report-problem":
+                setContent(<div>This is the report problem section where you can report a problem you are having with the system</div>);
                 break;
             default:
                 setContent(
