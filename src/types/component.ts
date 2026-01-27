@@ -72,3 +72,15 @@ export interface AccountSelectProps {
     }
 }
 
+export interface ChangePasswordFormProps {
+    setup: {
+        userId?: number | string;
+        onSuccess?: () => void | Promise<void>;
+        onError?: (error: string) => void;
+        title?: string;
+        description?: string;
+        requireCurrentPassword?: boolean;
+        className?: string;
+    }
+}
+

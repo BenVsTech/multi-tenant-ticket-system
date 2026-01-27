@@ -3,12 +3,15 @@
 import React, { useState, useEffect } from "react";
 import styles from "../app/page.module.css";
 import { RenderSectionProps } from "@/types/component";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
 
 // Exports
 
 export default function RenderSection({ setup }: RenderSectionProps) {
 
     const [content, setContent] = useState<React.ReactNode>(null);
+    const [reference, setReference] = useState<string>('');
+    const [success, setSuccess] = useState<boolean>(false);
 
     useEffect(() => {
         switch (setup.reference) {
@@ -39,7 +42,17 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 setContent(<div>This is the user management section where you can manage the users and their details</div>);
                 break;
             case "updated-password":
-                setContent(<div>This is the updated password section where you can update your password</div>);
+                setContent(
+                    <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-center']} ${styles['gap-10']}`}>
+                        <ChangePasswordForm 
+                            setup={{ 
+                                userId: setup.accountId || undefined, 
+                                onSuccess: () => { setReference('updated-password'); setSuccess(true); }, 
+                                onError: (error: string) => { console.error(error); } 
+                            }} 
+                        />
+                    </div>
+                );
                 break;
             case "manage-accounts":
                 setContent(<div>This is the manage accounts section where you can view the accounts you own</div>);
@@ -56,6 +69,19 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 )
         }
     }, [setup.reference]);
+
+    if(success) {
+        return (
+            <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
+                {reference === 'updated-password' && (
+                    <>
+                        <h1 className={`${styles['title-text']} ${styles['text-left']}`}>Password Changed Successfully</h1>
+                        <p className={`${styles['text-left']}`}>Your password has been changed successfully. You can now login with your new password.</p>
+                    </>
+                )}
+            </div>
+        )
+    }
 
     return <>{content}</>;
 }
