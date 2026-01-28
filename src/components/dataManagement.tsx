@@ -5,9 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import styles from "../app/page.module.css";
 import { DataManagementProps } from "@/types/component";
 import Form from "@/components/form";
-import Table from "@/components/table";
-
-// Exports
+import Table, { NO_OP } from "@/components/table";
 
 export default function DataManagement({ setup }: DataManagementProps) {
 
@@ -17,14 +15,18 @@ export default function DataManagement({ setup }: DataManagementProps) {
     const [dataLoaded, setDataLoaded] = useState<boolean>(false);
 
     const fetchData = useCallback(async () => {
-        if(!setup.api) {
+
+        if(!setup.api || !setup.accountId) {
             setDataLoaded(true);
             return;
         }
 
         try{
             setDataLoaded(false);
-            const response = await fetch(setup.api, {
+            const url = new URL(setup.api, window.location.origin);
+            url.searchParams.set('accountId', setup.accountId.toString());
+            
+            const response = await fetch(url.toString(), {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -50,24 +52,32 @@ export default function DataManagement({ setup }: DataManagementProps) {
         } finally {
             setDataLoaded(true);
         }
-    }, [setup.api]);
+    }, [setup.api, setup.accountId]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData])
 
     const handleSubmit = async (formData: any) => {
+
+        if(!setup.accountId) {
+            console.error('Account ID is required');
+            return;
+        }
+
         try {
             const isUpdate = selectedRow !== null;
             const url = isUpdate ? `${setup.api}/${selectedRow}` : setup.api;
             const method = isUpdate ? 'PUT' : 'POST';
+
+            const requestBody = isUpdate ? formData : { ...formData, accountId: setup.accountId };
 
             const response = await fetch(url!, {
                 method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(requestBody),
             });
 
             if(!response.ok) {
@@ -91,12 +101,21 @@ export default function DataManagement({ setup }: DataManagementProps) {
     };
 
     const handleArchive = async (id: number) => {
+
+        if(!setup.accountId) {
+            console.error('Account ID is required');
+            return;
+        }
+
         if(!window.confirm('Are you sure you want to delete this item?')) {
             return;
         }
 
         try {
-            const response = await fetch(`${setup.api}/${id}`, {
+            const url = new URL(`${setup.api}/${id}`, window.location.origin);
+            url.searchParams.set('accountId', setup.accountId.toString());
+            
+            const response = await fetch(url.toString(), {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -163,10 +182,12 @@ export default function DataManagement({ setup }: DataManagementProps) {
                 setup={{ 
                     headers: setup.headers, 
                     data: data, 
-                    onClick: (id: number) => {
-                        setSelectedRow(id);
-                        setShowForm(true);
-                    }, 
+                    onClick: setup.api === '/api/users' 
+                        ? NO_OP
+                        : (id: number) => {
+                            setSelectedRow(id);
+                            setShowForm(true);
+                        }, 
                     archiveable: setup.deleteStatus, 
                     onArchive: async (id: number) => {
                         handleArchive(id);

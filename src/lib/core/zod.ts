@@ -100,3 +100,14 @@ export const reportIssueSchema = z.object({
     issueDescription: z.string().min(1, 'Issue description is required'),
 });
 
+export const createUserSchema = z.object({
+    name: z.string().min(1, 'Name is required').max(100),
+    email: z.string().email('Invalid email address'),
+    role_id: z.coerce.number().int().positive('Role ID must be a positive integer'),
+    accountId: z.coerce.number().int().positive('Account ID must be a positive integer'),
+});
+
+export const userAccountIdParamSchema = z.object({
+    id: z.coerce.number().int().positive('User Account ID must be a positive integer'),
+});
+

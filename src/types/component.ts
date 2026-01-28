@@ -86,6 +86,7 @@ export interface ChangePasswordFormProps {
 
 export interface DataManagementProps {
     setup: {
+        accountId: number | null;
         title: string;
         description: string;
         createText: string;
