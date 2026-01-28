@@ -166,7 +166,7 @@ export async function getAccountById(userId: number, accountId: number): Promise
 
         return {
             status: true,
-            data: getAccountResult.data,
+            data: getAccountResult.data as {id: number, name: string, description: string, created_at: Date, updated_at: Date},
             message: 'Account retrieved successfully'
         };
 
@@ -209,7 +209,7 @@ export async function updateAccount(userId: number, accountId: number, data: Upd
         }
 
         const keys = Object.keys(data);
-        const values = Object.values(data);
+        const values = Object.values(data) as (string | number | boolean | null)[];
 
         const updateAccountResult = await updateRowById(dbClient, 'account', keys, values, accountId);
         if(!updateAccountResult.status || !updateAccountResult.data) {

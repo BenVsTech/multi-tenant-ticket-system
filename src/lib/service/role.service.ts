@@ -35,7 +35,7 @@ export async function getRoles(): Promise<DataReturnObject<{id: number, name: st
 
         return {
             status: true,
-            data: getRolesResult.data,
+            data: getRolesResult.data as {id: number, name: string, description: string}[],
             message: 'Roles retrieved successfully'
         };
 
