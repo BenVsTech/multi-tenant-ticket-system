@@ -5,6 +5,7 @@ import { closeDatabaseConnection } from "./database";
 import { sensitiveFieldPatterns } from "@/utils/constants";
 import { DataReturnObject } from "@/types/helper";
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 
 // Functions
 
@@ -142,10 +143,62 @@ export const logger = {
     info: logInfo,
 };
 
-export async function generatePassword(): Promise<DataReturnObject<string>> {
-    try{
+export async function generatePassword(retryCount: number = 0): Promise<DataReturnObject<string>> {
+    const maxRetries = 5;
+    
+    try {
+        const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        const numbers = '0123456789';
+        const special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+        const allChars = uppercase + lowercase + numbers + special;
+        const minLength = 16;
+        const maxLength = 24;
+        const lengthRange = maxLength - minLength + 1;
+        const lengthOffset = randomBytes(1)[0] % lengthRange;
+        const targetLength = minLength + lengthOffset;
 
-        const password = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const requiredChars = [
+            uppercase[randomBytes(1)[0] % uppercase.length],
+            lowercase[randomBytes(1)[0] % lowercase.length],
+            numbers[randomBytes(1)[0] % numbers.length],
+            special[randomBytes(1)[0] % special.length]
+        ];
+
+        const remainingLength = targetLength - requiredChars.length;
+        const randomChars: string[] = [];
+        
+        for (let i = 0; i < remainingLength; i++) {
+            const randomIndex = randomBytes(1)[0] % allChars.length;
+            randomChars.push(allChars[randomIndex]);
+        }
+
+        const allPasswordChars = [...requiredChars, ...randomChars];
+
+        for (let i = allPasswordChars.length - 1; i > 0; i--) {
+            const j = randomBytes(1)[0] % (i + 1);
+            [allPasswordChars[i], allPasswordChars[j]] = [allPasswordChars[j], allPasswordChars[i]];
+        }
+
+        const password = allPasswordChars.join('');
+
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasLowercase = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password);
+
+        if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial || password.length < minLength) {
+            if (retryCount < maxRetries) {
+                return generatePassword(retryCount + 1);
+            } else {
+                return {
+                    status: false,
+                    data: null,
+                    message: 'Failed to generate password meeting complexity requirements after multiple attempts'
+                };
+            }
+        }
+
         return {
             status: true,
             data: password,

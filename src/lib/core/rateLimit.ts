@@ -17,11 +17,11 @@ const redisPassword = process.env.REDIS_PASSWORD;
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Validate environment variables at startup
-if(!redisUrl) {
+
+if(!redisUrl || redisUrl === '') {
     throw new Error("REDIS_URL is not set");
 }
 
-// Require Redis password in production for security
 if (isProduction && !redisPassword) {
     throw new Error(
         "REDIS_PASSWORD is required in production environment. " +
@@ -49,7 +49,6 @@ async function getRedisClient(): Promise<DataReturnObject<RedisClientType>> {
             url: redisUrl,
         };
         
-        // Always include password if provided (required in production, optional in dev)
         if (redisPassword) {
             clientConfig.password = redisPassword;
         }
@@ -177,5 +176,13 @@ export function rateLimit(options: RateLimitOptions): RateLimitChecker {
 }
 
 export const authLimiter = rateLimit({
+    interval: 60 * 1000,
+});
+
+export const generalLimiter = rateLimit({
+    interval: 60 * 1000,
+});
+
+export const strictLimiter = rateLimit({
     interval: 60 * 1000,
 });
