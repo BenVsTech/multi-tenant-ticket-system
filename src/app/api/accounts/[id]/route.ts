@@ -94,7 +94,7 @@ export async function PUT(request: NextRequest,{ params }: { params: Promise<{ i
 
         const { name, description } = validationResult.data;
 
-        const updateAccountResult = await updateAccount(accountId, { name, description });
+        const updateAccountResult = await updateAccount(userId, accountId, { name, description });
         if(!updateAccountResult.status || !updateAccountResult.data) {
             return {
                 status: false,
@@ -138,7 +138,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
         const accountId = paramValidationResult.data.id;
 
-        const deleteAccountResult = await deleteAccount(accountId);
+        const deleteAccountResult = await deleteAccount(userId, accountId);
         if(!deleteAccountResult.status || !deleteAccountResult.data) {
             return {
                 status: false,

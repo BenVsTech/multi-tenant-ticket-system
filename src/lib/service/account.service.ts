@@ -3,6 +3,7 @@
 import { connectToDatabase, DatabaseClient } from "@/lib/core/database";
 import { dynamicSendData, getRowsByColumnValue, getStringRowsAccounts, updateRowById, getRowById, deleteRowById } from "@/lib/core/database/queries";
 import { handleCloseDatabaseConnections, logger } from "@/lib/core/helper";
+import { verifyAccountAccess, verifyAccountRole } from "@/lib/core/validation";
 import { DataReturnObject } from "@/types/helper";
 
 // Exports
@@ -144,12 +145,21 @@ export async function getAccountById(userId: number, accountId: number): Promise
         
         dbClient = databaseConnection.data;
 
+        const accessCheck = await verifyAccountAccess(dbClient, userId, accountId);
+        if (!accessCheck.status || !accessCheck.data) {
+            return {
+                status: false,
+                data: null,
+                message: 'You do not have access to this account'
+            };
+        }
+
         const getAccountResult = await getRowById(dbClient, 'account', accountId);
         if(!getAccountResult.status || !getAccountResult.data) {
             return {
                 status: false,
                 data: null,
-                message: getAccountResult.message
+                message: 'Account not found'
             };
         }
 
@@ -171,7 +181,7 @@ export async function getAccountById(userId: number, accountId: number): Promise
     }
 }
 
-export async function updateAccount(accountId: number, data: any): Promise<DataReturnObject<boolean>> {
+export async function updateAccount(userId: number, accountId: number, data: any): Promise<DataReturnObject<boolean>> {
 
     let dbClient: DatabaseClient | null = null;
 
@@ -187,6 +197,15 @@ export async function updateAccount(accountId: number, data: any): Promise<DataR
         }
         
         dbClient = databaseConnection.data;
+
+        const accessCheck = await verifyAccountAccess(dbClient, userId, accountId);
+        if (!accessCheck.status || !accessCheck.data) {
+            return {
+                status: false,
+                data: null,
+                message: 'You do not have access to this account'
+            };
+        }
 
         const keys = Object.keys(data);
         const values = Object.values(data);
@@ -218,7 +237,7 @@ export async function updateAccount(accountId: number, data: any): Promise<DataR
     }
 }
 
-export async function deleteAccount(accountId: number): Promise<DataReturnObject<boolean>> {
+export async function deleteAccount(userId: number, accountId: number): Promise<DataReturnObject<boolean>> {
 
     let dbClient: DatabaseClient | null = null;
 
@@ -234,6 +253,24 @@ export async function deleteAccount(accountId: number): Promise<DataReturnObject
         }
         
         dbClient = databaseConnection.data;
+
+        const accessCheck = await verifyAccountAccess(dbClient, userId, accountId);
+        if (!accessCheck.status || !accessCheck.data) {
+            return {
+                status: false,
+                data: null,
+                message: 'You do not have access to this account'
+            };
+        }
+
+        const roleCheck = await verifyAccountRole(dbClient, userId, accountId, 'owner');
+        if (!roleCheck.status || !roleCheck.data) {
+            return {
+                status: false,
+                data: null,
+                message: 'Only account owners can delete accounts'
+            };
+        }
 
         const deleteAccountResult = await deleteRowById(dbClient, 'account', accountId);
         if(!deleteAccountResult.status || !deleteAccountResult.data) {

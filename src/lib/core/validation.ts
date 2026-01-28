@@ -1,5 +1,8 @@
 // Imports
 
+import { DatabaseClient } from "./database";
+import { getRowsByColumnValue, getRowById } from "./database/queries";
+import { logger } from "./helper";
 import { DataReturnObject } from "@/types/helper";
 
 // Constants
@@ -254,3 +257,264 @@ export function validateTenantTable(table: string): DataReturnObject<boolean> {
         message: `Table '${table}' is a valid tenant table`
     }
 }
+
+export async function verifyAccountAccess(client: DatabaseClient, userId: number, accountId: number): Promise<DataReturnObject<boolean>> {
+    try {
+
+        const userAccountResult = await getRowsByColumnValue(
+            client, 
+            'user_account', 
+            'user_id', 
+            userId.toString()
+        );
+        
+        if (!userAccountResult.status || !userAccountResult.data) {
+            return {
+                status: false,
+                data: false,
+                message: 'Failed to verify account access'
+            };
+        }
+
+        const hasAccess = userAccountResult.data.some(
+            (ua: any) => ua.account_id === accountId
+        );
+
+        return {
+            status: true,
+            data: hasAccess,
+            message: hasAccess ? 'User has access to account' : 'User does not have access to account'
+        };
+
+    } catch (error: unknown) {
+        logger.error('verifyAccountAccess', error, { userId, accountId });
+        return {
+            status: false,
+            data: false,
+            message: 'Failed to verify account access'
+        };
+    }
+}
+
+
+export async function verifyAccountRole(client: DatabaseClient, userId: number, accountId: number, roleName: string): Promise<DataReturnObject<boolean>> {
+    try {
+
+        const accessCheck = await verifyAccountAccess(client, userId, accountId);
+        if (!accessCheck.status || !accessCheck.data) {
+            return {
+                status: false,
+                data: false,
+                message: 'User does not have access to this account'
+            };
+        }
+
+        const userAccountResult = await getRowsByColumnValue(
+            client, 
+            'user_account', 
+            'user_id', 
+            userId.toString()
+        );
+        
+        if (!userAccountResult.status || !userAccountResult.data) {
+            return {
+                status: false,
+                data: false,
+                message: 'Failed to fetch user account information'
+            };
+        }
+
+        const userAccount = userAccountResult.data.find(
+            (ua: any) => ua.account_id === accountId
+        );
+
+        if (!userAccount) {
+            return {
+                status: false,
+                data: false,
+                message: 'User account relationship not found'
+            };
+        }
+
+        const roleResult = await getRowById(client, 'role', userAccount.role_id);
+        if (!roleResult.status || !roleResult.data) {
+            return {
+                status: false,
+                data: false,
+                message: 'Failed to fetch role information'
+            };
+        }
+
+        const hasRole = roleResult.data.name === roleName;
+
+        return {
+            status: true,
+            data: hasRole,
+            message: hasRole 
+                ? `User has the '${roleName}' role for this account` 
+                : `User does not have the '${roleName}' role for this account`
+        };
+
+    } catch (error: unknown) {
+        logger.error('verifyAccountRole', error, { userId, accountId, roleName });
+        return {
+            status: false,
+            data: false,
+            message: 'Failed to verify account role'
+        };
+    }
+}
+
+
+export async function verifyAccountPermission(client: DatabaseClient, userId: number, accountId: number, permissionName: string): Promise<DataReturnObject<boolean>> {
+    try {
+
+        const accessCheck = await verifyAccountAccess(client, userId, accountId);
+        if (!accessCheck.status || !accessCheck.data) {
+            return {
+                status: false,
+                data: false,
+                message: 'User does not have access to this account'
+            };
+        }
+
+        const userAccountResult = await getRowsByColumnValue(
+            client, 
+            'user_account', 
+            'user_id', 
+            userId.toString()
+        );
+        
+        if (!userAccountResult.status || !userAccountResult.data) {
+            return {
+                status: false,
+                data: false,
+                message: 'Failed to fetch user account information'
+            };
+        }
+
+        const userAccount = userAccountResult.data.find(
+            (ua: any) => ua.account_id === accountId
+        );
+
+        if (!userAccount) {
+            return {
+                status: false,
+                data: false,
+                message: 'User account relationship not found'
+            };
+        }
+
+        const roleResult = await getRowById(client, 'role', userAccount.role_id);
+        if (!roleResult.status || !roleResult.data) {
+            return {
+                status: false,
+                data: false,
+                message: 'Failed to fetch role information'
+            };
+        }
+
+        const rolePermissionsResult = await getRowsByColumnValue(
+            client, 
+            'role_permission', 
+            'role_id', 
+            roleResult.data.id.toString()
+        );
+
+        if (!rolePermissionsResult.status || !rolePermissionsResult.data) {
+            return {
+                status: false,
+                data: false,
+                message: 'Failed to fetch role permissions'
+            };
+        }
+
+        const permissionIds = rolePermissionsResult.data.map(
+            (rp: any) => rp.permission_id
+        );
+
+        for (const permissionId of permissionIds) {
+            const permissionResult = await getRowById(client, 'permission', permissionId);
+            if (permissionResult.status && permissionResult.data) {
+                if (permissionResult.data.name === permissionName) {
+                    return {
+                        status: true,
+                        data: true,
+                        message: `User has the '${permissionName}' permission for this account`
+                    };
+                }
+            }
+        }
+
+        return {
+            status: true,
+            data: false,
+            message: `User does not have the '${permissionName}' permission for this account`
+        };
+
+    } catch (error: unknown) {
+        logger.error('verifyAccountPermission', error, { userId, accountId, permissionName });
+        return {
+            status: false,
+            data: false,
+            message: 'Failed to verify account permission'
+        };
+    }
+}
+
+export async function verifyAccountRoleAny(client: DatabaseClient, userId: number, accountId: number, roleNames: string[]): Promise<DataReturnObject<boolean>> {
+    try {
+        for (const roleName of roleNames) {
+            const roleCheck = await verifyAccountRole(client, userId, accountId, roleName);
+            if (roleCheck.status && roleCheck.data) {
+                return {
+                    status: true,
+                    data: true,
+                    message: `User has one of the required roles (${roleNames.join(', ')}) for this account`
+                };
+            }
+        }
+
+        return {
+            status: true,
+            data: false,
+            message: `User does not have any of the required roles (${roleNames.join(', ')}) for this account`
+        };
+    } catch (error: unknown) {
+        logger.error('verifyAccountRoleAny', error, { userId, accountId, roleNames });
+        return {
+            status: false,
+            data: false,
+            message: 'Failed to verify account roles'
+        };
+    }
+}
+
+export async function verifyAccountPermissionAny(client: DatabaseClient, userId: number, accountId: number, permissionNames: string[]): Promise<DataReturnObject<boolean>> {
+    try {
+        for (const permissionName of permissionNames) {
+            const permissionCheck = await verifyAccountPermission(client, userId, accountId, permissionName);
+            if (permissionCheck.status && permissionCheck.data) {
+                return {
+                    status: true,
+                    data: true,
+                    message: `User has one of the required permissions (${permissionNames.join(', ')}) for this account`
+                };
+            }
+        }
+
+        return {
+            status: true,
+            data: false,
+            message: `User does not have any of the required permissions (${permissionNames.join(', ')}) for this account`
+        };
+    } catch (error: unknown) {
+        logger.error('verifyAccountPermissionAny', error, { userId, accountId, permissionNames });
+        return {
+            status: false,
+            data: false,
+            message: 'Failed to verify account permissions'
+        };
+    }
+}
+

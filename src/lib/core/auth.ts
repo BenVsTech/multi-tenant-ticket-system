@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
 
           dbClient = connection.data;
 
-          const authorizeUserResult = await authorizeUser(dbClient, credentials.email, credentials.password);
+          const authorizeUserResult = await authorizeUser(dbClient, normalizedEmail, credentials.password);
           if (!authorizeUserResult.status || !authorizeUserResult.data) {
             return null;
           }
