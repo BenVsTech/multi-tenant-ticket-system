@@ -7,6 +7,7 @@ import styles from "../app/page.module.css";
 import { DataManagementProps } from "@/types/component";
 import Form from "@/components/form";
 import Table, { NO_OP } from "@/components/table";
+import ErrorPopup from "./errorPopup";
 
 // Exports
 
@@ -17,6 +18,7 @@ export default function DataManagement({ setup }: DataManagementProps) {
     const [selectedRow, setSelectedRow] = useState<number | null>(null);
     const [data, setData] = useState<string[][]>([]);
     const [dataLoaded, setDataLoaded] = useState<boolean>(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const fetchData = useCallback(async () => {
 
@@ -48,7 +50,8 @@ export default function DataManagement({ setup }: DataManagementProps) {
             });
 
             if(!response.ok) {
-                console.error('Failed to fetch data');
+                setErrorMessage('Failed to fetch data');
+                setDataLoaded(true);
                 return;
             }
 
@@ -57,12 +60,11 @@ export default function DataManagement({ setup }: DataManagementProps) {
             if(returnData.status && returnData.data) {
                 setData(returnData.data);
             } else {
-                console.error(returnData.message);
+                setErrorMessage(returnData.message || 'Failed to fetch data');
             }
 
         } catch(error: unknown) {
-            console.error('Failed to fetch data', error);
-            return;
+            setErrorMessage('Failed to fetch data');
         } finally {
             setDataLoaded(true);
         }
@@ -78,17 +80,17 @@ export default function DataManagement({ setup }: DataManagementProps) {
         const isUpdate = selectedRow !== null;
 
         if(!isUpdate && setup.accessStatus && setup.access && !setup.access.create) {
-            console.error('You do not have permission to create items');
+            setErrorMessage('You do not have permission to create items');
             return;
         }
 
         if(isUpdate && setup.accessStatus && setup.access && !setup.access.update) {
-            console.error('You do not have permission to update items');
+            setErrorMessage('You do not have permission to update items');
             return;
         }
 
         if(!isAccountsApi && !setup.accountId) {
-            console.error('Account ID is required');
+            setErrorMessage('Account ID is required');
             return;
         }
 
@@ -108,7 +110,7 @@ export default function DataManagement({ setup }: DataManagementProps) {
 
             if(!response.ok) {
                 const errorData = await response.json();
-                console.error('Failed to save data:', errorData.message || 'Unknown error');
+                setErrorMessage(errorData.message || 'Failed to save data');
                 return;
             }
 
@@ -123,22 +125,22 @@ export default function DataManagement({ setup }: DataManagementProps) {
                     await update();
                 }
             } else {
-                console.error('Failed to save data:', result.message);
+                setErrorMessage(result.message || 'Failed to save data');
             }
         } catch(error: unknown) {
-            console.error('Failed to save data', error);
+            setErrorMessage('Failed to save data');
         }
     };
 
     const handleArchive = async (id: number) => {
 
         if(setup.accessStatus && setup.access && !setup.access.delete) {
-            console.error('You do not have permission to delete items');
+            setErrorMessage('You do not have permission to delete items');
             return;
         }
 
         if(!setup.accountId) {
-            console.error('Account ID is required');
+            setErrorMessage('Account ID is required');
             return;
         }
 
@@ -159,7 +161,7 @@ export default function DataManagement({ setup }: DataManagementProps) {
 
             if(!response.ok) {
                 const errorData = await response.json();
-                console.error('Failed to delete:', errorData.message || 'Unknown error');
+                setErrorMessage(errorData.message || 'Failed to delete');
                 return;
             }
 
@@ -169,10 +171,10 @@ export default function DataManagement({ setup }: DataManagementProps) {
                 await fetchData();
                 setSelectedRow(null);
             } else {
-                console.error('Failed to delete:', result.message);
+                setErrorMessage(result.message || 'Failed to delete');
             }
         } catch(error: unknown) {
-            console.error('Failed to delete', error);
+            setErrorMessage('Failed to delete');
         }
     }
 
@@ -216,7 +218,11 @@ export default function DataManagement({ setup }: DataManagementProps) {
     const canDelete = setup.deleteStatus && (!setup.accessStatus || !setup.access || setup.access.delete);
 
     return (
-        <div className={`${styles["column-container"]} ${styles["width-100"]} ${styles["content-start"]} ${styles["align-start"]} ${styles["gap-10"]} ${styles["background-style-primary"]}`}>
+        <>
+            {errorMessage && (
+                <ErrorPopup message={errorMessage} onClose={() => setErrorMessage(null)} />
+            )}
+            <div className={`${styles["column-container"]} ${styles["width-100"]} ${styles["content-start"]} ${styles["align-start"]} ${styles["gap-10"]} ${styles["background-style-primary"]}`}>
             <div className={`${styles["row-container"]} ${styles["width-100"]} ${styles["content-space-between"]} ${styles["align-start"]} ${styles["gap-10"]} ${styles["wrap"]} ${styles["data-management-header"]}`}>
                 <div className={`${styles["column-container"]} ${styles["content-start"]} ${styles["align-start"]} ${styles["gap-5"]} ${styles["data-management-title-section"]}`}>
                     <h1 className={`${styles["title-text"]} ${styles["text-left"]}`}>{setup.title}</h1>
@@ -240,6 +246,7 @@ export default function DataManagement({ setup }: DataManagementProps) {
                 }} 
             />
         </div>
+        </>
     )
 }
 

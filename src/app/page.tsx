@@ -11,6 +11,7 @@ import RenderSection from "@/components/renderSection";
 import AccountSelect from "@/components/accountSelect";
 import Form from "@/components/form";
 import { accountForm } from "@/utils/form/account";
+import ErrorPopup from "@/components/errorPopup";
 
 // Exports
 
@@ -24,6 +25,7 @@ export default function Home() {
   const [openSections, setOpenSections] = useState<sections>({management: false, admin: false, system: false});
   const [permissions, setPermissions] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated" || session?.user?.mustChangePassword) {
@@ -68,23 +70,22 @@ export default function Home() {
       });
 
       if(!response.ok) {
-        console.error('Failed to create user account');
+        setErrorMessage('Failed to create user account');
         return;
       }
 
       const responseData = await response.json();
 
       if(!responseData.status || !responseData.data) {
-        console.error('Failed to create account:', responseData.message);
+        setErrorMessage(responseData.message || 'Failed to create account');
         return;
       }
 
       await update();
+      setSelectedAccount(null);
 
     } catch(error: unknown) {
-      console.error('Error creating account:', error);
-    } finally {
-      setSelectedAccount(null);
+      setErrorMessage('Error creating account. Please try again.');
     }
   }
 
@@ -119,6 +120,10 @@ export default function Home() {
 
       {showSettings && (
         <Settings setup={{ onClose: () => setShowSettings(false) }} />
+      )}
+
+      {errorMessage && (
+        <ErrorPopup message={errorMessage} onClose={() => setErrorMessage(null)} />
       )}
 
       {mobileMenuOpen && (

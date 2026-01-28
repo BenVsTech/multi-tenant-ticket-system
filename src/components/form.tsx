@@ -3,6 +3,7 @@
 import styles from "../app/page.module.css";
 import { FormProps, element, FormDataTypes } from "@/types/component";
 import { useEffect, useState } from "react";
+import ErrorPopup from "./errorPopup";
 
 // Exports
 
@@ -12,6 +13,7 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
     const [formData, setFormData] = useState<FormDataTypes>({});
     const [optionsLoaded, setOptionsLoaded] = useState<boolean>(false);
     const [dataLoaded, setDataLoaded] = useState<boolean>(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
 
@@ -43,7 +45,8 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                     });
 
                     if(!response.ok) {
-                        console.error('Failed to fetch options');
+                        setErrorMessage('Failed to fetch options');
+                        setOptionsLoaded(true);
                         return;
                     }
 
@@ -60,8 +63,7 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 setApiOptions(options);
 
             } catch(error: unknown) {
-                console.error('Failed to fetch options');
-                return;
+                setErrorMessage('Failed to fetch options');
             } finally {
                 setOptionsLoaded(true);
             }
@@ -88,7 +90,8 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 });
     
                 if(!response.ok) {
-                    console.error('Failed to fetch ticket');
+                    setErrorMessage('Failed to fetch ticket');
+                    setDataLoaded(true);
                     return;
                 }
     
@@ -97,12 +100,11 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 if(data.status) {
                     setFormData(data.data);
                 } else {
-                    console.error(data.message);
+                    setErrorMessage(data.message || 'Failed to fetch ticket');
                 }
 
             } catch(error: unknown) {
-                console.error('Failed to fetch ticket');
-                return;
+                setErrorMessage('Failed to fetch ticket');
             } finally {
                 setDataLoaded(true);
             }
@@ -133,7 +135,11 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
     }
 
     return (
-        <div className={`${styles["column-container"]} ${styles["width-100"]} ${styles["content-start"]} ${styles["align-start"]} ${styles["gap-10"]}`}>
+        <>
+            {errorMessage && (
+                <ErrorPopup message={errorMessage} onClose={() => setErrorMessage(null)} />
+            )}
+            <div className={`${styles["column-container"]} ${styles["width-100"]} ${styles["content-start"]} ${styles["align-start"]} ${styles["gap-10"]}`}>
             <div className={`${styles["row-container"]} ${styles["width-100"]} ${styles["content-space-between"]} ${styles["align-start"]} ${styles["gap-20"]}`}>
                 <div className={`${styles["column-container"]} ${styles["content-start"]} ${styles["align-start"]} ${styles["gap-5"]}`}>
                     <h1 className={`${styles["title-text"]}`}>{setup.content.title}</h1>
@@ -226,5 +232,6 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 </div>
             </form>
         </div>
+        </>
     );
 }

@@ -115,3 +115,8 @@ export interface TableProps {
     }
 }
 
+export interface ErrorPopupProps {
+    message: string;
+    onClose: () => void;
+}
+

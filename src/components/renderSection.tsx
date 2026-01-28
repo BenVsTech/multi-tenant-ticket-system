@@ -9,6 +9,7 @@ import DataManagement from "@/components/dataManagement";
 import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
+import ErrorPopup from "./errorPopup";
 
 // Exports
 
@@ -17,6 +18,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
     const [content, setContent] = useState<React.ReactNode>(null);
     const [reference, setReference] = useState<string>('');
     const [success, setSuccess] = useState<boolean>(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
 
@@ -87,7 +89,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             setup={{ 
                                 userId: setup.accountId || undefined, 
                                 onSuccess: () => { setReference('updated-password'); setSuccess(true); }, 
-                                onError: (error: string) => { console.error(error); } 
+                                onError: (error: string) => { setErrorMessage(error); } 
                             }} 
                         />
                     </div>
@@ -151,14 +153,14 @@ export default function RenderSection({ setup }: RenderSectionProps) {
 
             if(!response.ok) {
                 const errorData = await response.json();
-                console.error('Failed to report problem:', errorData.message || 'Unknown error');
+                setErrorMessage(errorData.message || 'Failed to report problem');
                 return;
             }
 
             const responseData = await response.json();
 
             if(!responseData.status) {
-                console.error('Email failed to send:', responseData.message);
+                setErrorMessage(responseData.message || 'Email failed to send');
                 return;
             }
 
@@ -166,7 +168,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
             setSuccess(true);
 
         } catch(error: unknown) {
-            console.error('Failed to report problem', error);
+            setErrorMessage('Failed to report problem');
         }
     }
 
@@ -189,6 +191,13 @@ export default function RenderSection({ setup }: RenderSectionProps) {
         )
     }
 
-    return <>{content}</>;
+    return (
+        <>
+            {errorMessage && (
+                <ErrorPopup message={errorMessage} onClose={() => setErrorMessage(null)} />
+            )}
+            {content}
+        </>
+    );
 }
 
