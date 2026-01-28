@@ -2,13 +2,17 @@
 
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import styles from "../app/page.module.css";
 import { DataManagementProps } from "@/types/component";
 import Form from "@/components/form";
 import Table, { NO_OP } from "@/components/table";
 
+// Exports
+
 export default function DataManagement({ setup }: DataManagementProps) {
 
+    const { update } = useSession();
     const [showForm, setShowForm] = useState<boolean>(false);
     const [selectedRow, setSelectedRow] = useState<number | null>(null);
     const [data, setData] = useState<string[][]>([]);
@@ -16,7 +20,9 @@ export default function DataManagement({ setup }: DataManagementProps) {
 
     const fetchData = useCallback(async () => {
 
-        if(!setup.api || !setup.accountId) {
+        const isAccountsApi = setup.api === '/api/accounts';
+
+        if(!setup.api || (!isAccountsApi && !setup.accountId)) {
             setDataLoaded(true);
             return;
         }
@@ -24,7 +30,9 @@ export default function DataManagement({ setup }: DataManagementProps) {
         try{
             setDataLoaded(false);
             const url = new URL(setup.api, window.location.origin);
-            url.searchParams.set('accountId', setup.accountId.toString());
+            if(!isAccountsApi && setup.accountId) {
+                url.searchParams.set('accountId', setup.accountId.toString());
+            }
             
             const response = await fetch(url.toString(), {
                 method: 'GET',
@@ -60,17 +68,19 @@ export default function DataManagement({ setup }: DataManagementProps) {
 
     const handleSubmit = async (formData: any) => {
 
-        if(!setup.accountId) {
+        const isAccountsApi = setup.api === '/api/accounts';
+        const isUpdate = selectedRow !== null;
+
+        if(!isAccountsApi && !setup.accountId) {
             console.error('Account ID is required');
             return;
         }
 
         try {
-            const isUpdate = selectedRow !== null;
             const url = isUpdate ? `${setup.api}/${selectedRow}` : setup.api;
             const method = isUpdate ? 'PUT' : 'POST';
 
-            const requestBody = isUpdate ? formData : { ...formData, accountId: setup.accountId };
+            const requestBody = isUpdate || isAccountsApi ? formData : { ...formData, accountId: setup.accountId };
 
             const response = await fetch(url!, {
                 method: method,
@@ -92,6 +102,10 @@ export default function DataManagement({ setup }: DataManagementProps) {
                 await fetchData();
                 setSelectedRow(null);
                 setShowForm(false);
+                
+                if(isAccountsApi && !isUpdate) {
+                    await update();
+                }
             } else {
                 console.error('Failed to save data:', result.message);
             }
