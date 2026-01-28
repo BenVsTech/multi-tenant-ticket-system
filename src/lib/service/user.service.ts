@@ -6,6 +6,7 @@ import { handleCloseDatabaseConnections, logger, generatePassword, formatDate } 
 import { verifyAccountAccess } from "@/lib/core/validation";
 import { sendEmailToUser } from "@/lib/service/email.service";
 import { DataReturnObject } from "@/types/helper";
+import { UserAccountRow } from "@/types/component";
 
 // Exports
 
@@ -50,7 +51,7 @@ export async function getAllUsers(userId: number, accountId: number): Promise<Da
             };
         }
 
-        const usersResult = await Promise.all(userAccounts.map(async (userAccount: any) => {
+        const usersResult = await Promise.all(userAccounts.map(async (userAccount: UserAccountRow) => {
             const userResult = await getRowById(dbClient!, 'users', userAccount.user_id);
             if(!userResult.status || !userResult.data) {
                 return null;

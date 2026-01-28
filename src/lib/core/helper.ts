@@ -13,7 +13,7 @@ function isSensitiveField(key: string): boolean {
     return sensitiveFieldPatterns.some(pattern => pattern.test(key));
 }
 
-function sanitizeValue(value: any, depth: number = 0): any {
+function sanitizeValue(value: unknown, depth: number = 0): unknown {
     if (depth > 5) {
         return '[Max Depth Reached]';
     }
@@ -42,7 +42,7 @@ function sanitizeValue(value: any, depth: number = 0): any {
         };
     }
 
-    const sanitized: Record<string, any> = {};
+    const sanitized: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value)) {
         if (isSensitiveField(key)) {
             sanitized[key] = '[REDACTED]';
@@ -71,7 +71,7 @@ function sanitizeStackTrace(stack: string): string {
         .join('\n');
 }
 
-function sanitizeError(error: unknown): any {
+function sanitizeError(error: unknown): { name?: string; message?: string; stack?: string } | unknown {
     if (error instanceof Error) {
         return {
             name: error.name,
@@ -105,7 +105,7 @@ export async function handleCloseDatabaseConnections(temporaryDbClient: Database
     await Promise.all(closePromises);
 }
 
-function logError(context: string, error: unknown, sensitiveData?: Record<string, any>): void {
+function logError(context: string, error: unknown, sensitiveData?: Record<string, unknown>): void {
     if (process.env.NODE_ENV === 'development') {
         const sanitizedError = sanitizeError(error);
         if (sensitiveData) {
@@ -120,7 +120,7 @@ function logError(context: string, error: unknown, sensitiveData?: Record<string
     }
 }
 
-function logWarning(context: string, message: string, sensitiveData?: Record<string, any>): void {
+function logWarning(context: string, message: string, sensitiveData?: Record<string, unknown>): void {
     if (process.env.NODE_ENV === 'development') {
         if (sensitiveData) {
             const sanitizedData = sanitizeValue(sensitiveData);

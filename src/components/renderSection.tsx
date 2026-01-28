@@ -10,6 +10,7 @@ import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
 import ErrorPopup from "./errorPopup";
+import { ReportProblemFormData } from "@/types/component";
 
 // Exports
 
@@ -135,7 +136,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
         }
     }, [setup.reference]);
 
-    const handleReportProblem = async (data: any) => {
+    const handleReportProblem = async (data: ReportProblemFormData) => {
         try{
 
             const requestBody = {

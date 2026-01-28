@@ -5,6 +5,7 @@ import { dynamicSendData, getRowsByColumnValue, getStringRowsAccounts, updateRow
 import { handleCloseDatabaseConnections, logger } from "@/lib/core/helper";
 import { verifyAccountAccess, verifyAccountRole } from "@/lib/core/validation";
 import { DataReturnObject } from "@/types/helper";
+import { UpdateAccountData } from "@/types/component";
 
 // Exports
 
@@ -181,7 +182,7 @@ export async function getAccountById(userId: number, accountId: number): Promise
     }
 }
 
-export async function updateAccount(userId: number, accountId: number, data: any): Promise<DataReturnObject<boolean>> {
+export async function updateAccount(userId: number, accountId: number, data: UpdateAccountData): Promise<DataReturnObject<boolean>> {
 
     let dbClient: DatabaseClient | null = null;
 

@@ -1,7 +1,7 @@
 // Imports
 
 import styles from "../app/page.module.css";
-import { FormProps, element, FormDataTypes } from "@/types/component";
+import { FormProps, element, FormDataTypes, ApiOptionData, Option } from "@/types/component";
 import { useEffect, useState } from "react";
 import ErrorPopup from "./errorPopup";
 
@@ -9,7 +9,7 @@ import ErrorPopup from "./errorPopup";
 
 export default function Form({ setup, onClose, onSubmit }: FormProps) {
 
-    const [apiOptions, setApiOptions] = useState<any[]>([]);
+    const [apiOptions, setApiOptions] = useState<ApiOptionData[]>([]);
     const [formData, setFormData] = useState<FormDataTypes>({});
     const [optionsLoaded, setOptionsLoaded] = useState<boolean>(false);
     const [dataLoaded, setDataLoaded] = useState<boolean>(false);
@@ -26,7 +26,7 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
 
             try{
 
-                let options: any[] = [];
+                let options: ApiOptionData[] = [];
 
                 for(const apiOption of setup.content.apiOptions) {
                     
@@ -203,15 +203,18 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
 
                                         <option value="">Select an option</option>
 
-                                        {element.options.map((option: any) => (
+                                        {element.options.map((option: Option) => (
                                             <option key={option.value} value={option.value}>{option.label}</option>
                                         ))}
 
                                         {apiOptions
                                             .find((apiOption) => apiOption.reference === element.optionApiRef)
-                                            ?.options?.map((option: any) => (
-                                                <option key={option.id} value={option.id}>{option.name}</option>
-                                            ))
+                                            ?.options?.map((option) => {
+                                                const apiOption = option as { id: number | string; name: string };
+                                                return (
+                                                    <option key={apiOption.id} value={apiOption.id}>{apiOption.name}</option>
+                                                );
+                                            })
                                         }
 
                                     </select>

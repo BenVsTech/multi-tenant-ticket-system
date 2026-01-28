@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { sections } from "@/types/component";
+import { sections, FormDataTypes } from "@/types/component";
 import styles from "./page.module.css";
 import Settings from "@/components/settings";
 import RenderSection from "@/components/renderSection";
@@ -58,7 +58,7 @@ export default function Home() {
     return null;
   }
 
-  const createAccount = async (data: any) => {
+  const createAccount = async (data: FormDataTypes) => {
     try{
 
       const response = await fetch(`/api/accounts`, {

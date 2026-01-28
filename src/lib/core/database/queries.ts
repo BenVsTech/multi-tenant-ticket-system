@@ -6,6 +6,7 @@ import { DatabaseClient } from "../database";
 import { DatabaseConfiguration, DatabaseTable } from "@/types/database";
 import { validateIdentifierOrError, validateColumnTypeOrError, validateForeignKeyConstraintOrError, validateUniqueConstraintOrError, validateTenantTable, escapeIdentifier } from "../validation";
 import { logger } from "../helper";
+import { UserAccountRow, RolePermissionRow, DatabaseRow, UserRow, AccountRow, RoleRow, PermissionRow } from "@/types/component";
 
 // Functions
 
@@ -357,8 +358,8 @@ export async function checkPassword(client: DatabaseClient, email: string, passw
         if (!userResult.status || !userResult.data || userResult.data.length === 0) {
             passwordHash = '$2a$10$dummyhashfordummyuserenumerationprevention';
         } else {
-            const user = userResult.data[0];
-            passwordHash = user.password;
+            const user = userResult.data[0] as UserRow;
+            passwordHash = user.password as string;
             userId = user.id.toString();
         }
 
@@ -424,11 +425,11 @@ export async function getUserRoles(client: DatabaseClient, userId: number): Prom
             };
         }
 
-        const userAccounts = userAccountResult.data && userAccountResult.data.length > 0 
+        const userAccounts = (userAccountResult.data && userAccountResult.data.length > 0 
             ? userAccountResult.data 
-            : [];
+            : []) as UserAccountRow[];
 
-        const roles = (await Promise.all(userAccounts.map(async (userAccount: any) => {
+        const roles = (await Promise.all(userAccounts.map(async (userAccount: UserAccountRow) => {
 
             let permissions: string[] = [];
 
@@ -441,14 +442,14 @@ export async function getUserRoles(client: DatabaseClient, userId: number): Prom
                 return null;
             }
 
-            const role = roleResult.data;
+            const role = roleResult.data as RoleRow;
 
             const rolePermissionsResult = await getRowsByColumnValue(client, 'role_permission', 'role_id', role.id.toString());
             if (!rolePermissionsResult.status || !rolePermissionsResult.data) {
                 return null;
             }
 
-            const permissionIds = rolePermissionsResult.data.map((rolePermission: any) => rolePermission.permission_id);
+            const permissionIds = (rolePermissionsResult.data as RolePermissionRow[]).map((rolePermission) => rolePermission.permission_id);
 
             for (const permissionId of permissionIds) {
 
@@ -457,8 +458,8 @@ export async function getUserRoles(client: DatabaseClient, userId: number): Prom
                     continue;
                 }
 
-                const permission = permissionResult.data;
-                permissions.push(permission.name);
+                const permission = permissionResult.data as PermissionRow;
+                permissions.push(permission.name as string);
             }
 
             const accountResult = await getRowById(client, 'account', userAccount.account_id);
@@ -466,12 +467,12 @@ export async function getUserRoles(client: DatabaseClient, userId: number): Prom
                 return null;
             }
 
-            const account = accountResult.data;
+            const account = accountResult.data as AccountRow;
 
             return {
                 accountId: userAccount.account_id,
-                accountName: account.name,
-                role: role.name,
+                accountName: account.name as string,
+                role: role.name as string,
                 permissions: permissions,
             };
 
@@ -512,7 +513,7 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
             };
           }
 
-          const user = userResult.data;
+          const user = userResult.data as UserRow;
           const mustChangePassword = user.must_change_password === true;
 
           const rolesResult = await getUserRoles(client, user.id);
@@ -530,8 +531,8 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
             status: true,
             data: {
                 id: user.id,
-                email: user.email,
-                name: user.name,
+                email: user.email as string,
+                name: user.name as string,
                 roles: roles,
                 mustChangePassword: mustChangePassword
             },
@@ -547,14 +548,14 @@ export async function authorizeUser(client: DatabaseClient, email: string, passw
     }
 }
 
-export async function dynamicSendData(client: DatabaseClient, table: string, columns: string[], data: any[]): Promise<DataReturnObject<any>> {
+export async function dynamicSendData(client: DatabaseClient, table: string, columns: string[], data: (string | number | boolean | null)[]): Promise<DataReturnObject<number>> {
     try{
 
-        const tableValidationError = validateIdentifierOrError<any>(table, 'table');
+        const tableValidationError = validateIdentifierOrError<number>(table, 'table');
         if (tableValidationError) return tableValidationError;
 
         for (const column of columns) {
-            const columnValidationError = validateIdentifierOrError<any>(column, 'column');
+            const columnValidationError = validateIdentifierOrError<number>(column, 'column');
             if (columnValidationError) return columnValidationError;
         }
 
@@ -590,7 +591,7 @@ export async function dynamicSendData(client: DatabaseClient, table: string, col
     }
 }
 
-export async function updateRowById(client: DatabaseClient, table: string, columns: string[], data: any[], id: number, accountId?: number): Promise<DataReturnObject<boolean>> {
+export async function updateRowById(client: DatabaseClient, table: string, columns: string[], data: (string | number | boolean | null)[], id: number, accountId?: number): Promise<DataReturnObject<boolean>> {
     try{
 
         const tableValidationError = validateIdentifierOrError<boolean>(table, 'table');
@@ -655,10 +656,10 @@ export async function updateRowById(client: DatabaseClient, table: string, colum
     }
 }
 
-export async function getAllRowsFromTable(client: DatabaseClient, table: string, accountId?: number): Promise<DataReturnObject<any[]>> {
+export async function getAllRowsFromTable(client: DatabaseClient, table: string, accountId?: number): Promise<DataReturnObject<DatabaseRow[]>> {
     try{
 
-        const validationError = validateIdentifierOrError<any[]>(table, 'table');
+        const validationError = validateIdentifierOrError<DatabaseRow[]>(table, 'table');
         if (validationError) return validationError;
 
         const tenantTableValidation = validateTenantTable(table);
@@ -705,10 +706,10 @@ export async function getAllRowsFromTable(client: DatabaseClient, table: string,
     }
 }
 
-export async function getRowById(client: DatabaseClient, table: string, id: number, accountId?: number): Promise<DataReturnObject<any>> {
+export async function getRowById(client: DatabaseClient, table: string, id: number, accountId?: number): Promise<DataReturnObject<DatabaseRow>> {
     try{
 
-        const validationError = validateIdentifierOrError<any>(table, 'table');
+        const validationError = validateIdentifierOrError<DatabaseRow>(table, 'table');
         if (validationError) return validationError;
 
         const tenantTableValidation = validateTenantTable(table);
@@ -755,13 +756,13 @@ export async function getRowById(client: DatabaseClient, table: string, id: numb
     }
 }
 
-export async function getRowsByColumnValue(client: DatabaseClient, table: string, column: string, value: string, accountId?: number): Promise<DataReturnObject<any[]>> {
+export async function getRowsByColumnValue(client: DatabaseClient, table: string, column: string, value: string, accountId?: number): Promise<DataReturnObject<DatabaseRow[]>> {
     try{
 
-        const tableValidationError = validateIdentifierOrError<any[]>(table, 'table');
+        const tableValidationError = validateIdentifierOrError<DatabaseRow[]>(table, 'table');
         if (tableValidationError) return tableValidationError;
 
-        const columnValidationError = validateIdentifierOrError<any[]>(column, 'column');
+        const columnValidationError = validateIdentifierOrError<DatabaseRow[]>(column, 'column');
         if (columnValidationError) return columnValidationError;
 
         const tenantTableValidation = validateTenantTable(table);

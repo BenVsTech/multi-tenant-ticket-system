@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import styles from "../app/page.module.css";
-import { DataManagementProps } from "@/types/component";
+import { DataManagementProps, FormDataTypes } from "@/types/component";
 import Form from "@/components/form";
 import Table, { NO_OP } from "@/components/table";
 import ErrorPopup from "./errorPopup";
@@ -74,7 +74,7 @@ export default function DataManagement({ setup }: DataManagementProps) {
         fetchData();
     }, [fetchData])
 
-    const handleSubmit = async (formData: any) => {
+    const handleSubmit = async (formData: FormDataTypes) => {
 
         const isAccountsApi = setup.api === '/api/accounts';
         const isUpdate = selectedRow !== null;
