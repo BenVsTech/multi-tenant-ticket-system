@@ -36,7 +36,9 @@ export async function createUserAccount(name: string, email: string): Promise<Da
 
         const password = passwordResult.data;
 
-        const existingUser = await getRowsByColumnValue(dbClient, 'users', 'email', email);
+        const normalizedEmail = email.toLowerCase().trim();
+
+        const existingUser = await getRowsByColumnValue(dbClient, 'users', 'email', normalizedEmail);
         if (existingUser.status && existingUser.data && existingUser.data.length > 0) {
             return {
                 status: false,
@@ -49,7 +51,7 @@ export async function createUserAccount(name: string, email: string): Promise<Da
             dbClient,
             'users',
             ['name', 'email', 'password', 'must_change_password'],
-            [name, email, password, true]
+            [name, normalizedEmail, password, true]
         );
         if(!sendUserDetailsResult.status || !sendUserDetailsResult.data) {
             return {

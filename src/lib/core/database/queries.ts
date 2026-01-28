@@ -7,6 +7,16 @@ import { DatabaseConfiguration, DatabaseTable } from "@/types/database";
 import { validateIdentifierOrError, validateColumnTypeOrError, validateForeignKeyConstraintOrError, validateUniqueConstraintOrError, validateTenantTable, escapeIdentifier } from "../validation";
 import { logger } from "../helper";
 
+// Functions
+
+const formatDate = (date: Date | string): string => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear();
+    return `${day}/${month}/${year}`;
+};
+
 // Exports
 
 export async function checkIfDatabaseExists(client: DatabaseClient, databaseName: string): Promise<DataReturnObject<boolean>> {
@@ -849,6 +859,68 @@ export async function deleteRowById(client: DatabaseClient, table: string, id: n
 
     } catch(error: unknown) {
         logger.error('deleteRowById', error, { table, id });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getStringRowsAccounts(client: DatabaseClient, userId: number): Promise<DataReturnObject<string[][]>> {
+    try{
+
+        const getRoleIdObject = await getRowsByColumnValue(client, 'role', 'name', 'owner');
+        if(!getRoleIdObject.status || !getRoleIdObject.data) {
+            return {
+                status: false,
+                data: null,
+                message: getRoleIdObject.message
+            };
+        }
+
+        const roleId = getRoleIdObject.data[0].id;
+
+        const result = await client.query(`SELECT * FROM user_account WHERE user_id = $1 AND role_id = $2`, [userId, roleId]);
+        if(!result.rows || result.rows.length === 0) {
+            return {
+                status: true,
+                data: [],
+                message: 'No accounts found'
+            };
+        }
+
+        const accountsResult = await Promise.all(result.rows.map(async (row) => {
+            const accountObject = await getRowById(client, 'account', row.account_id);
+            if(!accountObject.status || !accountObject.data) {
+                return null;
+            }
+            return [
+                row.account_id.toString(), 
+                accountObject.data.name, 
+                accountObject.data.description, 
+                formatDate(row.updated_at), 
+                formatDate(row.created_at)
+            ];
+        }));
+        if(accountsResult.some((account) => account === null)) {
+            return {
+                status: false,
+                data: null,
+                message: 'Failed to retrieve accounts'
+            };
+        }
+
+        const accounts = accountsResult.filter((account) => account !== null);
+
+        return {
+            status: true,
+            data: accounts,
+            message: 'Accounts retrieved successfully'
+        }
+
+    } catch(error: unknown) {
+        logger.error('getStringRowsAccounts', error);
         return {
             status: false,
             data: null,

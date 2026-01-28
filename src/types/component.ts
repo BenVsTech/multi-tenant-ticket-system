@@ -72,3 +72,37 @@ export interface AccountSelectProps {
     }
 }
 
+export interface ChangePasswordFormProps {
+    setup: {
+        userId?: number | string;
+        onSuccess?: () => void | Promise<void>;
+        onError?: (error: string) => void;
+        title?: string;
+        description?: string;
+        requireCurrentPassword?: boolean;
+        className?: string;
+    }
+}
+
+export interface DataManagementProps {
+    setup: {
+        title: string;
+        description: string;
+        createText: string;
+        deleteStatus: boolean;
+        form: FormElements;
+        headers: string[];
+        api: string;
+    }
+}
+
+export interface TableProps {
+    setup: {
+        headers: string[];
+        data: string[][];
+        onClick: (id: number) => void;
+        archiveable: boolean;
+        onArchive: (id: number) => void;
+    }
+}
+

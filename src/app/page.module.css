@@ -24,6 +24,21 @@
     z-index: 999;
 }
 
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.table-container {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
 /* Structure */
 
 .width-100 {
@@ -102,6 +117,10 @@
     gap: 5px;
 }
 
+.wrap {
+    flex-wrap: wrap;
+}
+
 .clickable {
     cursor: pointer;
 }
@@ -113,6 +132,10 @@
 
 .un-clickable {
     cursor: not-allowed;
+}
+
+.scrollable {
+    overflow-y: auto;
 }
 
 .selected {
@@ -172,6 +195,34 @@
     width: 90%;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     animation: fadeIn 0.25s ease-out;
+}
+
+/* Table Styles */
+
+.table-container thead {
+    background: #f5f7fa;
+    text-align: left;
+}
+  
+.table-container th,
+.table-container td {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+  
+.table-container th {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #374151;
+}
+  
+.table-container td {
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+  
+.table-container tr:hover td {
+    background: #f9fafb;
 }
 
 /* Styles */ 
@@ -259,5 +310,51 @@
     .sidebar-nav.open {
         transform: translateX(0);
         pointer-events: auto;
+    }
+
+    /* Data Management Responsive Styles */
+    
+    .data-management-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .data-management-title-section {
+        width: 100%;
+        align-items: center;
+        text-align: center;
+    }
+
+    .data-management-title-section h1,
+    .data-management-title-section p {
+        text-align: center;
+        width: 100%;
+    }
+
+    .data-management-button-section {
+        width: 100%;
+        align-items: stretch;
+    }
+
+    .data-management-button {
+        width: 100%;
+    }
+
+    /* Table Responsive Styles */
+
+    .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-container {
+        min-width: 600px;
+    }
+
+    .table-container th,
+    .table-container td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
     }
 }

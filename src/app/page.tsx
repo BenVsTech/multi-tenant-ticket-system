@@ -128,7 +128,7 @@ export default function Home() {
         />
       )}
 
-      <ul className={`${styles['width-200']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['primary-background']} ${styles['text-center']} ${styles['sidebar-nav']} ${mobileMenuOpen ? styles['open'] : ''}`}>
+      <ul className={`${styles['width-200']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['primary-background']} ${styles['text-center']} ${styles['scrollable']} ${styles['sidebar-nav']} ${mobileMenuOpen ? styles['open'] : ''}`}>
 
         <li className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['pd-all-round']}`}><img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} /></li>
         <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'home' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('home'); }}>Home</li>
@@ -159,7 +159,7 @@ export default function Home() {
           <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
             <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'updated-password' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('updated-password'); }}>Updated Password</li>
             <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'manage-accounts' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('manage-accounts'); }}>Manage Accounts</li>
-            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'system-requests' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('system-requests'); }}>System Requests</li>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'report-problem' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('report-problem'); }}>Report a Problem</li>
           </ul>
         )}
 
