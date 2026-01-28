@@ -22,6 +22,12 @@ export default function DataManagement({ setup }: DataManagementProps) {
 
         const isAccountsApi = setup.api === '/api/accounts';
 
+        if(setup.accessStatus && setup.access && !setup.access.view) {
+            setDataLoaded(true);
+            setData([]);
+            return;
+        }
+
         if(!setup.api || (!isAccountsApi && !setup.accountId)) {
             setDataLoaded(true);
             return;
@@ -60,7 +66,7 @@ export default function DataManagement({ setup }: DataManagementProps) {
         } finally {
             setDataLoaded(true);
         }
-    }, [setup.api, setup.accountId]);
+    }, [setup.api, setup.accountId, setup.accessStatus, setup.access]);
 
     useEffect(() => {
         fetchData();
@@ -70,6 +76,16 @@ export default function DataManagement({ setup }: DataManagementProps) {
 
         const isAccountsApi = setup.api === '/api/accounts';
         const isUpdate = selectedRow !== null;
+
+        if(!isUpdate && setup.accessStatus && setup.access && !setup.access.create) {
+            console.error('You do not have permission to create items');
+            return;
+        }
+
+        if(isUpdate && setup.accessStatus && setup.access && !setup.access.update) {
+            console.error('You do not have permission to update items');
+            return;
+        }
 
         if(!isAccountsApi && !setup.accountId) {
             console.error('Account ID is required');
@@ -115,6 +131,11 @@ export default function DataManagement({ setup }: DataManagementProps) {
     };
 
     const handleArchive = async (id: number) => {
+
+        if(setup.accessStatus && setup.access && !setup.access.delete) {
+            console.error('You do not have permission to delete items');
+            return;
+        }
 
         if(!setup.accountId) {
             console.error('Account ID is required');
@@ -169,7 +190,8 @@ export default function DataManagement({ setup }: DataManagementProps) {
                 <Form 
                     setup={{ 
                         api: selectedRow !== null ? `${setup.api}/${selectedRow}` : null, 
-                        content: setup.form 
+                        content: setup.form,
+                        accountId: setup.accountId
                     }} 
                     onClose={() => {
                         setSelectedRow(null);
@@ -181,6 +203,18 @@ export default function DataManagement({ setup }: DataManagementProps) {
         )
     }
 
+    const canCreate = !setup.accessStatus || !setup.access || setup.access.create;
+
+    const canUpdate = setup.api !== '/api/users' && (!setup.accessStatus || !setup.access || setup.access.update);
+    const handleRowClick = canUpdate 
+        ? (id: number) => {
+            setSelectedRow(id);
+            setShowForm(true);
+        }
+        : NO_OP;
+
+    const canDelete = setup.deleteStatus && (!setup.accessStatus || !setup.access || setup.access.delete);
+
     return (
         <div className={`${styles["column-container"]} ${styles["width-100"]} ${styles["content-start"]} ${styles["align-start"]} ${styles["gap-10"]} ${styles["background-style-primary"]}`}>
             <div className={`${styles["row-container"]} ${styles["width-100"]} ${styles["content-space-between"]} ${styles["align-start"]} ${styles["gap-10"]} ${styles["wrap"]} ${styles["data-management-header"]}`}>
@@ -188,21 +222,18 @@ export default function DataManagement({ setup }: DataManagementProps) {
                     <h1 className={`${styles["title-text"]} ${styles["text-left"]}`}>{setup.title}</h1>
                     <p className={`${styles["text-left"]}`}>{setup.description}</p>
                 </div>
-                <div className={`${styles["column-container"]} ${styles["content-end"]} ${styles["align-end"]} ${styles["gap-5"]} ${styles["data-management-button-section"]}`}>
-                    <button className={`${styles["button-structure"]} ${styles["primary-button"]} ${styles["clickable"]} ${styles["data-management-button"]}`} onClick={() => setShowForm(true)}>{setup.createText}</button>
-                </div>
+                {canCreate && (
+                    <div className={`${styles["column-container"]} ${styles["content-end"]} ${styles["align-end"]} ${styles["gap-5"]} ${styles["data-management-button-section"]}`}>
+                        <button className={`${styles["button-structure"]} ${styles["primary-button"]} ${styles["clickable"]} ${styles["data-management-button"]}`} onClick={() => setShowForm(true)}>{setup.createText}</button>
+                    </div>
+                )}
             </div>
             <Table 
                 setup={{ 
                     headers: setup.headers, 
                     data: data, 
-                    onClick: setup.api === '/api/users' 
-                        ? NO_OP
-                        : (id: number) => {
-                            setSelectedRow(id);
-                            setShowForm(true);
-                        }, 
-                    archiveable: setup.deleteStatus, 
+                    onClick: handleRowClick,
+                    archiveable: canDelete, 
                     onArchive: async (id: number) => {
                         handleArchive(id);
                     }

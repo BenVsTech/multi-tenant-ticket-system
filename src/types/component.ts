@@ -60,6 +60,7 @@ export interface FormProps {
     setup: {
         api: string | null;
         content: FormElements;
+        accountId?: number | null;
     },
     onClose: () => void;
     onSubmit: (data: FormDataTypes) => void;
@@ -94,6 +95,13 @@ export interface DataManagementProps {
         form: FormElements;
         headers: string[];
         api: string;
+        accessStatus: boolean;
+        access: {
+            view: boolean;
+            create: boolean;
+            update: boolean;
+            delete: boolean;
+        } | null;
     }
 }
 

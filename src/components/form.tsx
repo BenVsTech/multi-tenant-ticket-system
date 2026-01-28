@@ -27,8 +27,15 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 let options: any[] = [];
 
                 for(const apiOption of setup.content.apiOptions) {
+                    
+                    let apiUrl = apiOption.api;
+                    if(setup.accountId && (apiOption.api === '/api/roles' || apiOption.api.includes('/api/roles'))) {
+                        const url = new URL(apiOption.api, window.location.origin);
+                        url.searchParams.set('accountId', setup.accountId.toString());
+                        apiUrl = url.toString();
+                    }
 
-                    const response = await fetch(apiOption.api, {
+                    const response = await fetch(apiUrl, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',

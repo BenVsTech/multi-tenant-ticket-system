@@ -68,7 +68,14 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             deleteStatus: true, 
                             form: userForm, 
                             headers: ['ID', 'Name', 'Email', 'Role', 'Last Updated', 'Created On'], 
-                            api: '/api/users'
+                            api: '/api/users',
+                            accessStatus: true,
+                            access: {
+                                view: setup.permissions.includes('user.view'),
+                                create: setup.permissions.includes('user.create'),
+                                update: setup.permissions.includes('user.update'),
+                                delete: setup.permissions.includes('user.delete')
+                            }
                         }} 
                     />
                 );
@@ -97,7 +104,9 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             deleteStatus: true, 
                             form: accountForm, 
                             headers: ['ID', 'Name', 'Description', 'Last Updated', 'Created On'], 
-                            api: '/api/accounts'
+                            api: '/api/accounts',
+                            accessStatus: false,
+                            access: null
                         }} 
                     />
                 );

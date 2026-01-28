@@ -1,7 +1,6 @@
 // Exports
 
 export const permissions: {name: string, description: string}[] = [
-    {name: 'account.manage', description: 'Edit the account details'},
     {name: 'ticket.view', description: 'View the ticket details'},
     {name: 'ticket.create', description: 'Create new tickets'},
     {name: 'ticket.update', description: 'Update existing ticket details'},
@@ -28,7 +27,6 @@ export const roles: {name: string, description: string}[] = [
 ]
 
 export const rolePermissions: {roleName: string, permissionName: string}[] = [
-    {roleName: 'owner', permissionName: 'account.manage'},
     {roleName: 'owner', permissionName: 'ticket.view'},
     {roleName: 'owner', permissionName: 'ticket.create'},
     {roleName: 'owner', permissionName: 'ticket.update'},
