@@ -294,3 +294,61 @@ export async function deleteUser(userId: number, accountId: number, userAccountI
     }
 }
 
+export async function deleteUserFromSystem(targetUserId: number): Promise<DataReturnObject<boolean>> {
+
+    let dbClient: DatabaseClient | null = null;
+
+    try{
+
+        const databaseConnection = await connectToDatabase(false);
+        if(!databaseConnection.status || !databaseConnection.data) {
+            return {
+                status: false,
+                data: null,
+                message: databaseConnection.message
+            };
+        }
+        
+        dbClient = databaseConnection.data;
+
+        const userResult = await getRowById(dbClient, 'users', targetUserId);
+        if(!userResult.status || !userResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: 'User not found'
+            };
+        }
+
+        const deleteUserAccountsResult = await dbClient.query(
+            `DELETE FROM user_account WHERE user_id = $1`,
+            [targetUserId]
+        );
+
+        const deleteUserResult = await deleteRowById(dbClient, 'users', targetUserId);
+        if(!deleteUserResult.status || !deleteUserResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: deleteUserResult.message
+            };
+        }
+
+        return {
+            status: true,
+            data: true,
+            message: 'User deleted successfully from the system'
+        };
+
+    } catch(error: unknown) {
+        logger.error('deleteUserFromSystem', error);
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    } finally {
+        await handleCloseDatabaseConnections(null, dbClient);
+    }
+}
+

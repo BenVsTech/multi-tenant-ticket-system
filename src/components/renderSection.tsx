@@ -6,10 +6,11 @@ import { RenderSectionProps } from "@/types/component";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import Form from "@/components/form";
 import DataManagement from "@/components/dataManagement";
+import DeleteMyData from "./deleteMyData";
+import ErrorPopup from "./errorPopup";
 import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
-import ErrorPopup from "./errorPopup";
 import { ReportProblemFormData } from "@/types/component";
 
 // Exports
@@ -125,6 +126,9 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                         onSubmit={(data) => { handleReportProblem(data); }} 
                     />
                 );
+                break;
+            case "delete-my-data":
+                setContent(<DeleteMyData />);
                 break;
             default:
                 setContent(

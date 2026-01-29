@@ -165,6 +165,7 @@ export default function Home() {
             <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'updated-password' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('updated-password'); }}>Updated Password</li>
             <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'manage-accounts' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('manage-accounts'); }}>Manage Accounts</li>
             <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'report-problem' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('report-problem'); }}>Report a Problem</li>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'delete-my-data' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('delete-my-data'); }}>Delete My Data</li>
           </ul>
         )}
 
