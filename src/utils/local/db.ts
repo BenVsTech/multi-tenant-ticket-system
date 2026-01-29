@@ -28,6 +28,54 @@ export const databaseConfiguration: DatabaseConfiguration = {
         END;
         $$ LANGUAGE plpgsql;
         `,
+        `
+        CREATE OR REPLACE FUNCTION check_password_expiration()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            -- Set password_changed_at on INSERT if password is provided
+            IF TG_OP = 'INSERT' AND NEW.password IS NOT NULL THEN
+                NEW.password_changed_at = CURRENT_TIMESTAMP;
+            END IF;
+            
+            -- Update password_changed_at when password changes
+            IF TG_OP = 'UPDATE' AND NEW.password IS DISTINCT FROM OLD.password THEN
+                NEW.password_changed_at = CURRENT_TIMESTAMP;
+                NEW.must_change_password = false;
+            END IF;
+            
+            -- Check if password is older than 3 months
+            IF NEW.password_changed_at IS NOT NULL THEN
+                IF NEW.password_changed_at < CURRENT_TIMESTAMP - INTERVAL '3 months' THEN
+                    NEW.must_change_password = true;
+                END IF;
+            END IF;
+            
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        `,
+        `
+        CREATE OR REPLACE FUNCTION delete_empty_accounts()
+        RETURNS TRIGGER AS $$
+        DECLARE
+            account_user_count INTEGER;
+        BEGIN
+            -- After a DELETE from user_account, check if the account has any remaining users
+            IF TG_OP = 'DELETE' THEN
+                SELECT COUNT(*) INTO account_user_count
+                FROM user_account
+                WHERE account_id = OLD.account_id;
+                
+                -- If no users remain, delete the account
+                IF account_user_count = 0 THEN
+                    DELETE FROM account WHERE id = OLD.account_id;
+                END IF;
+            END IF;
+            
+            RETURN OLD;
+        END;
+        $$ LANGUAGE plpgsql;
+        `,
     ],
     tables: [
         {
@@ -142,6 +190,10 @@ export const databaseConfiguration: DatabaseConfiguration = {
                 {
                     name: 'must_change_password',
                     type: databaseConstants.boolean,
+                },
+                {
+                    name: 'password_changed_at',
+                    type: databaseConstants.timestamp,
                 },
                 {
                     name: 'created_at',

@@ -4,13 +4,14 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { sections } from "@/types/component";
+import { sections, FormDataTypes } from "@/types/component";
 import styles from "./page.module.css";
 import Settings from "@/components/settings";
 import RenderSection from "@/components/renderSection";
 import AccountSelect from "@/components/accountSelect";
 import Form from "@/components/form";
 import { accountForm } from "@/utils/form/account";
+import ErrorPopup from "@/components/errorPopup";
 
 // Exports
 
@@ -24,6 +25,7 @@ export default function Home() {
   const [openSections, setOpenSections] = useState<sections>({management: false, admin: false, system: false});
   const [permissions, setPermissions] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated" || session?.user?.mustChangePassword) {
@@ -56,7 +58,7 @@ export default function Home() {
     return null;
   }
 
-  const createAccount = async (data: any) => {
+  const createAccount = async (data: FormDataTypes) => {
     try{
 
       const response = await fetch(`/api/accounts`, {
@@ -68,23 +70,22 @@ export default function Home() {
       });
 
       if(!response.ok) {
-        console.error('Failed to create user account');
+        setErrorMessage('Failed to create user account');
         return;
       }
 
       const responseData = await response.json();
 
       if(!responseData.status || !responseData.data) {
-        console.error('Failed to create account:', responseData.message);
+        setErrorMessage(responseData.message || 'Failed to create account');
         return;
       }
 
       await update();
+      setSelectedAccount(null);
 
     } catch(error: unknown) {
-      console.error('Error creating account:', error);
-    } finally {
-      setSelectedAccount(null);
+      setErrorMessage('Error creating account. Please try again.');
     }
   }
 
@@ -119,6 +120,10 @@ export default function Home() {
 
       {showSettings && (
         <Settings setup={{ onClose: () => setShowSettings(false) }} />
+      )}
+
+      {errorMessage && (
+        <ErrorPopup message={errorMessage} onClose={() => setErrorMessage(null)} />
       )}
 
       {mobileMenuOpen && (
@@ -160,6 +165,7 @@ export default function Home() {
             <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'updated-password' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('updated-password'); }}>Updated Password</li>
             <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'manage-accounts' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('manage-accounts'); }}>Manage Accounts</li>
             <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'report-problem' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('report-problem'); }}>Report a Problem</li>
+            <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'delete-my-data' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('delete-my-data'); }}>Delete My Data</li>
           </ul>
         )}
 

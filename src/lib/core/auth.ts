@@ -1,7 +1,7 @@
 // Imports
 
 import dotenv from "dotenv";
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { connectToDatabase, closeDatabaseConnection, DatabaseClient } from "@/lib/core/database";
 import { authorizeUser, getRowById, getUserRoles } from "@/lib/core/database/queries";
@@ -99,7 +99,7 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.roles = user.roles;
-        token.mustChangePassword = (user as any).mustChangePassword || false;
+        token.mustChangePassword = (user as User).mustChangePassword || false;
       }
       
       if (trigger === "update" && token.id) {

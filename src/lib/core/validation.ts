@@ -4,6 +4,7 @@ import { DatabaseClient } from "./database";
 import { getRowsByColumnValue, getRowById } from "./database/queries";
 import { logger } from "./helper";
 import { DataReturnObject } from "@/types/helper";
+import { UserAccountRow, RolePermissionRow } from "@/types/component";
 
 // Constants
 
@@ -276,8 +277,8 @@ export async function verifyAccountAccess(client: DatabaseClient, userId: number
             };
         }
 
-        const hasAccess = userAccountResult.data.some(
-            (ua: any) => ua.account_id === accountId
+        const hasAccess = (userAccountResult.data as UserAccountRow[]).some(
+            (ua) => ua.account_id === accountId
         );
 
         return {
@@ -324,8 +325,8 @@ export async function verifyAccountRole(client: DatabaseClient, userId: number, 
             };
         }
 
-        const userAccount = userAccountResult.data.find(
-            (ua: any) => ua.account_id === accountId
+        const userAccount = (userAccountResult.data as UserAccountRow[]).find(
+            (ua) => ua.account_id === accountId
         );
 
         if (!userAccount) {
@@ -336,7 +337,7 @@ export async function verifyAccountRole(client: DatabaseClient, userId: number, 
             };
         }
 
-        const roleResult = await getRowById(client, 'role', userAccount.role_id);
+        const roleResult = await getRowById(client, 'role', userAccount.role_id as number);
         if (!roleResult.status || !roleResult.data) {
             return {
                 status: false,
@@ -393,8 +394,8 @@ export async function verifyAccountPermission(client: DatabaseClient, userId: nu
             };
         }
 
-        const userAccount = userAccountResult.data.find(
-            (ua: any) => ua.account_id === accountId
+        const userAccount = (userAccountResult.data as UserAccountRow[]).find(
+            (ua) => ua.account_id === accountId
         );
 
         if (!userAccount) {
@@ -405,7 +406,7 @@ export async function verifyAccountPermission(client: DatabaseClient, userId: nu
             };
         }
 
-        const roleResult = await getRowById(client, 'role', userAccount.role_id);
+        const roleResult = await getRowById(client, 'role', userAccount.role_id as number);
         if (!roleResult.status || !roleResult.data) {
             return {
                 status: false,
@@ -429,8 +430,8 @@ export async function verifyAccountPermission(client: DatabaseClient, userId: nu
             };
         }
 
-        const permissionIds = rolePermissionsResult.data.map(
-            (rp: any) => rp.permission_id
+        const permissionIds = (rolePermissionsResult.data as RolePermissionRow[]).map(
+            (rp) => rp.permission_id as number
         );
 
         for (const permissionId of permissionIds) {

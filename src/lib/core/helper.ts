@@ -5,6 +5,7 @@ import { closeDatabaseConnection } from "./database";
 import { sensitiveFieldPatterns } from "@/utils/constants";
 import { DataReturnObject } from "@/types/helper";
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 
 // Functions
 
@@ -12,7 +13,7 @@ function isSensitiveField(key: string): boolean {
     return sensitiveFieldPatterns.some(pattern => pattern.test(key));
 }
 
-function sanitizeValue(value: any, depth: number = 0): any {
+function sanitizeValue(value: unknown, depth: number = 0): unknown {
     if (depth > 5) {
         return '[Max Depth Reached]';
     }
@@ -41,7 +42,7 @@ function sanitizeValue(value: any, depth: number = 0): any {
         };
     }
 
-    const sanitized: Record<string, any> = {};
+    const sanitized: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value)) {
         if (isSensitiveField(key)) {
             sanitized[key] = '[REDACTED]';
@@ -70,7 +71,7 @@ function sanitizeStackTrace(stack: string): string {
         .join('\n');
 }
 
-function sanitizeError(error: unknown): any {
+function sanitizeError(error: unknown): { name?: string; message?: string; stack?: string } | unknown {
     if (error instanceof Error) {
         return {
             name: error.name,
@@ -104,7 +105,7 @@ export async function handleCloseDatabaseConnections(temporaryDbClient: Database
     await Promise.all(closePromises);
 }
 
-function logError(context: string, error: unknown, sensitiveData?: Record<string, any>): void {
+function logError(context: string, error: unknown, sensitiveData?: Record<string, unknown>): void {
     if (process.env.NODE_ENV === 'development') {
         const sanitizedError = sanitizeError(error);
         if (sensitiveData) {
@@ -119,7 +120,7 @@ function logError(context: string, error: unknown, sensitiveData?: Record<string
     }
 }
 
-function logWarning(context: string, message: string, sensitiveData?: Record<string, any>): void {
+function logWarning(context: string, message: string, sensitiveData?: Record<string, unknown>): void {
     if (process.env.NODE_ENV === 'development') {
         if (sensitiveData) {
             const sanitizedData = sanitizeValue(sensitiveData);
@@ -142,10 +143,62 @@ export const logger = {
     info: logInfo,
 };
 
-export async function generatePassword(): Promise<DataReturnObject<string>> {
-    try{
+export async function generatePassword(retryCount: number = 0): Promise<DataReturnObject<string>> {
+    const maxRetries = 5;
+    
+    try {
+        const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        const numbers = '0123456789';
+        const special = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+        const allChars = uppercase + lowercase + numbers + special;
+        const minLength = 16;
+        const maxLength = 24;
+        const lengthRange = maxLength - minLength + 1;
+        const lengthOffset = randomBytes(1)[0] % lengthRange;
+        const targetLength = minLength + lengthOffset;
 
-        const password = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const requiredChars = [
+            uppercase[randomBytes(1)[0] % uppercase.length],
+            lowercase[randomBytes(1)[0] % lowercase.length],
+            numbers[randomBytes(1)[0] % numbers.length],
+            special[randomBytes(1)[0] % special.length]
+        ];
+
+        const remainingLength = targetLength - requiredChars.length;
+        const randomChars: string[] = [];
+        
+        for (let i = 0; i < remainingLength; i++) {
+            const randomIndex = randomBytes(1)[0] % allChars.length;
+            randomChars.push(allChars[randomIndex]);
+        }
+
+        const allPasswordChars = [...requiredChars, ...randomChars];
+
+        for (let i = allPasswordChars.length - 1; i > 0; i--) {
+            const j = randomBytes(1)[0] % (i + 1);
+            [allPasswordChars[i], allPasswordChars[j]] = [allPasswordChars[j], allPasswordChars[i]];
+        }
+
+        const password = allPasswordChars.join('');
+
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasLowercase = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password);
+
+        if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial || password.length < minLength) {
+            if (retryCount < maxRetries) {
+                return generatePassword(retryCount + 1);
+            } else {
+                return {
+                    status: false,
+                    data: null,
+                    message: 'Failed to generate password meeting complexity requirements after multiple attempts'
+                };
+            }
+        }
+
         return {
             status: true,
             data: password,
@@ -224,4 +277,16 @@ export async function apiHandler<T>(
         return handleApiResponse(errorResult, 200, 500);
     }
 }
+
+export async function formatDate(date: Date | string): Promise<string> {
+    try{
+        const dateObj = typeof date === 'string' ? new Date(date) : date;
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch(error: unknown) {
+        return error instanceof Error ? error.message : 'Unknown error while formatting date';
+    }
+};
 

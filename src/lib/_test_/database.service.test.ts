@@ -26,6 +26,9 @@ jest.mock('@/lib/core/database/queries', () => ({
 
 jest.mock('@/lib/core/helper', () => ({
     handleCloseDatabaseConnections: jest.fn(),
+    logger: {
+        error: jest.fn(),
+    },
 }));
 
 jest.mock('@/utils/local/db', () => ({
@@ -139,7 +142,7 @@ describe('Database Service', () => {
                 roles,
                 rolePermissions
             );
-            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(mockTemporaryDbClient, mockMainDbClient);
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockMainDbClient);
         });
 
         it('should return error when temporary database connection fails', async () => {
@@ -271,7 +274,7 @@ describe('Database Service', () => {
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
             expect(result.message).toBe('Failed to connect to main database');
-            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(mockTemporaryDbClient, null);
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, null);
         });
 
         it('should return error when createDatabaseSchema fails', async () => {
@@ -314,7 +317,7 @@ describe('Database Service', () => {
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
             expect(result.message).toBe('Failed to create schema');
-            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(mockTemporaryDbClient, mockMainDbClient);
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockMainDbClient);
         });
 
         it('should handle exceptions and return error message', async () => {
@@ -327,7 +330,7 @@ describe('Database Service', () => {
             // Assert
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
-            expect(result.message).toBe('Unexpected error');
+            expect(result.message).toBe('Database operation failed');
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, null);
         });
     });
@@ -337,7 +340,8 @@ describe('Database Service', () => {
             details: {
                 name: 'Test User',
                 email: 'test@example.com',
-                password: 'password123'
+                password: 'password123',
+                mustChangePassword: false
             },
             account: {
                 name: 'Test Account',
@@ -394,8 +398,8 @@ describe('Database Service', () => {
                 1,
                 mockDbClient,
                 'users',
-                ['name', 'email', 'password'],
-                [mockTestUser.details.name, mockTestUser.details.email, mockTestUser.details.password]
+                ['name', 'email', 'password', 'must_change_password'],
+                [mockTestUser.details.name, mockTestUser.details.email, mockTestUser.details.password, mockTestUser.details.mustChangePassword]
             );
             expect(dynamicSendData).toHaveBeenNthCalledWith(
                 2,
@@ -596,7 +600,7 @@ describe('Database Service', () => {
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
-            expect(result.message).toBe('Unexpected error');
+            expect(result.message).toBe('Database operation failed');
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, null);
         });
     });

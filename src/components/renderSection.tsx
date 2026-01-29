@@ -6,8 +6,12 @@ import { RenderSectionProps } from "@/types/component";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import Form from "@/components/form";
 import DataManagement from "@/components/dataManagement";
+import DeleteMyData from "./deleteMyData";
+import ErrorPopup from "./errorPopup";
 import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
+import { userForm } from "@/utils/form/user";
+import { ReportProblemFormData } from "@/types/component";
 
 // Exports
 
@@ -16,6 +20,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
     const [content, setContent] = useState<React.ReactNode>(null);
     const [reference, setReference] = useState<string>('');
     const [success, setSuccess] = useState<boolean>(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
 
@@ -47,7 +52,37 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 setContent(<div>This is the comments section where you can view the comments and their details</div>);
                 break;
             case "user-management":
-                setContent(<div>This is the user management section where you can manage the users and their details</div>);
+                if(!setup.accountId) {
+                    setContent(
+                        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
+                            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
+                            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
+                        </div>
+                    );
+                    break;
+                }
+
+                setContent(
+                    <DataManagement 
+                        setup={{ 
+                            accountId: setup.accountId,
+                            title: 'Manage Users', 
+                            description: 'This is the manage users section where you can view the users and their details', 
+                            createText: 'Create User', 
+                            deleteStatus: true, 
+                            form: userForm, 
+                            headers: ['ID', 'Name', 'Email', 'Role', 'Last Updated', 'Created On'], 
+                            api: '/api/users',
+                            accessStatus: true,
+                            access: {
+                                view: setup.permissions.includes('user.view'),
+                                create: setup.permissions.includes('user.create'),
+                                update: setup.permissions.includes('user.update'),
+                                delete: setup.permissions.includes('user.delete')
+                            }
+                        }} 
+                    />
+                );
                 break;
             case "updated-password":
                 setContent(
@@ -56,7 +91,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             setup={{ 
                                 userId: setup.accountId || undefined, 
                                 onSuccess: () => { setReference('updated-password'); setSuccess(true); }, 
-                                onError: (error: string) => { console.error(error); } 
+                                onError: (error: string) => { setErrorMessage(error); } 
                             }} 
                         />
                     </div>
@@ -66,13 +101,16 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 setContent(
                     <DataManagement 
                         setup={{ 
+                            accountId: null,
                             title: 'Manage Accounts', 
                             description: 'This is the manage accounts section where you can view the accounts you own', 
                             createText: 'Create Account', 
                             deleteStatus: true, 
                             form: accountForm, 
                             headers: ['ID', 'Name', 'Description', 'Last Updated', 'Created On'], 
-                            api: '/api/accounts' 
+                            api: '/api/accounts',
+                            accessStatus: false,
+                            access: null
                         }} 
                     />
                 );
@@ -89,6 +127,9 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                     />
                 );
                 break;
+            case "delete-my-data":
+                setContent(<DeleteMyData />);
+                break;
             default:
                 setContent(
                     <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
@@ -99,7 +140,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
         }
     }, [setup.reference]);
 
-    const handleReportProblem = async (data: any) => {
+    const handleReportProblem = async (data: ReportProblemFormData) => {
         try{
 
             const requestBody = {
@@ -117,14 +158,14 @@ export default function RenderSection({ setup }: RenderSectionProps) {
 
             if(!response.ok) {
                 const errorData = await response.json();
-                console.error('Failed to report problem:', errorData.message || 'Unknown error');
+                setErrorMessage(errorData.message || 'Failed to report problem');
                 return;
             }
 
             const responseData = await response.json();
 
             if(!responseData.status) {
-                console.error('Email failed to send:', responseData.message);
+                setErrorMessage(responseData.message || 'Email failed to send');
                 return;
             }
 
@@ -132,7 +173,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
             setSuccess(true);
 
         } catch(error: unknown) {
-            console.error('Failed to report problem', error);
+            setErrorMessage('Failed to report problem');
         }
     }
 
@@ -155,6 +196,13 @@ export default function RenderSection({ setup }: RenderSectionProps) {
         )
     }
 
-    return <>{content}</>;
+    return (
+        <>
+            {errorMessage && (
+                <ErrorPopup message={errorMessage} onClose={() => setErrorMessage(null)} />
+            )}
+            {content}
+        </>
+    );
 }
 

@@ -1,7 +1,6 @@
 // Exports
 
 export const permissions: {name: string, description: string}[] = [
-    {name: 'account.manage', description: 'Edit the account details'},
     {name: 'ticket.view', description: 'View the ticket details'},
     {name: 'ticket.create', description: 'Create new tickets'},
     {name: 'ticket.update', description: 'Update existing ticket details'},
@@ -16,7 +15,6 @@ export const permissions: {name: string, description: string}[] = [
     {name: 'comment.delete', description: 'Delete existing comments'},
     {name: 'user.view', description: 'View the user details'},
     {name: 'user.create', description: 'Create new users'},
-    {name: 'user.update', description: 'Update existing user details'},
     {name: 'user.delete', description: 'Delete existing users'},
     {name: 'performance.view', description: 'View the performance analytics'},
 ];
@@ -29,7 +27,6 @@ export const roles: {name: string, description: string}[] = [
 ]
 
 export const rolePermissions: {roleName: string, permissionName: string}[] = [
-    {roleName: 'owner', permissionName: 'account.manage'},
     {roleName: 'owner', permissionName: 'ticket.view'},
     {roleName: 'owner', permissionName: 'ticket.create'},
     {roleName: 'owner', permissionName: 'ticket.update'},
@@ -44,7 +41,6 @@ export const rolePermissions: {roleName: string, permissionName: string}[] = [
     {roleName: 'owner', permissionName: 'comment.delete'},
     {roleName: 'owner', permissionName: 'user.view'},
     {roleName: 'owner', permissionName: 'user.create'},
-    {roleName: 'owner', permissionName: 'user.update'},
     {roleName: 'owner', permissionName: 'user.delete'},
     {roleName: 'owner', permissionName: 'performance.view'},
     {roleName: 'admin', permissionName: 'ticket.view'},
@@ -61,7 +57,6 @@ export const rolePermissions: {roleName: string, permissionName: string}[] = [
     {roleName: 'admin', permissionName: 'comment.delete'},
     {roleName: 'admin', permissionName: 'user.view'},
     {roleName: 'admin', permissionName: 'user.create'},
-    {roleName: 'admin', permissionName: 'user.update'},
     {roleName: 'admin', permissionName: 'user.delete'},
     {roleName: 'admin', permissionName: 'performance.view'},
     {roleName: 'manager', permissionName: 'ticket.view'},
@@ -74,7 +69,6 @@ export const rolePermissions: {roleName: string, permissionName: string}[] = [
     {roleName: 'manager', permissionName: 'team.delete'},
     {roleName: 'manager', permissionName: 'comment.view'},
     {roleName: 'manager', permissionName: 'comment.create'},
-    {roleName: 'manager', permissionName: 'comment.update'},
     {roleName: 'manager', permissionName: 'comment.delete'},
     {roleName: 'manager', permissionName: 'performance.view'},
     {roleName: 'employee', permissionName: 'ticket.view'},

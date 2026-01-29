@@ -2,6 +2,7 @@
 
 export const databaseConstants = {
     defaultTimestamp: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+    timestamp: 'TIMESTAMP',
     primaryKey: 'SERIAL PRIMARY KEY',
     varchar: (length: number) => `VARCHAR(${length})`,
     integer: 'INTEGER NOT NULL',

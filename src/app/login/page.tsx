@@ -9,6 +9,7 @@ import Form from "@/components/form";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import { FormDataTypes } from "@/types/component";
 import { newUserForm } from "@/utils/form/newUser";
+import ErrorPopup from "@/components/errorPopup";
 
 // Exports
 
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [errorPopupMessage, setErrorPopupMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -78,21 +80,20 @@ export default function LoginPage() {
       });
 
       if(!response.ok) {
-        console.error('Failed to create user account');
+        setErrorPopupMessage('Failed to create user account');
         return;
       }
 
       const responseData = await response.json();
 
       if(!responseData.status || !responseData.data) {
-        console.error('Failed to create user account:', responseData.message);
+        setErrorPopupMessage(responseData.message || 'Failed to create user account');
         return;
       }
       
-    } catch(err) {
-      console.error(err);
-    } finally {
       setShowSignUp(false);
+    } catch(err) {
+      setErrorPopupMessage('Failed to create user account');
     }
   }
 
@@ -143,6 +144,9 @@ export default function LoginPage() {
 
   return (
     <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-center']} ${styles['secondary-background']}`}>
+      {errorPopupMessage && (
+        <ErrorPopup message={errorPopupMessage} onClose={() => setErrorPopupMessage(null)} />
+      )}
       <form
         onSubmit={handleSubmit}
         className={`${styles['column-container']} ${styles['pd-all-round']} ${styles['content-start']} ${styles['align-stretch']} ${styles['gap-20']} ${styles['primary-background']}`}

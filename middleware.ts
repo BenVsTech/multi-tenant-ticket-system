@@ -2,16 +2,13 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { generalLimiter, strictLimiter } from '@/lib/core/rateLimit';
 
 // Constants
 
 const maxBodySize = 1024 * 1024;
-const rateLimitWindow = 60 * 1000;
 const rateLimitMaxRequests = 100;
-const rateLimitStrictWindow = 60 * 1000;
 const rateLimitStrictMax = 20;
-
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
 const securityHeaders = {
   'X-DNS-Prefetch-Control': 'on',
@@ -24,6 +21,7 @@ const securityHeaders = {
   'Cross-Origin-Embedder-Policy': 'require-corp',
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Resource-Policy': 'same-origin',
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;",
 };
 
 // Functions
@@ -56,40 +54,26 @@ function getClientIP(request: NextRequest): string {
   return 'unknown';
 }
 
-function checkRateLimit(ip: string, path: string): { allowed: boolean; remaining: number; reset: number } {
-  const now = Date.now();
-  
+async function checkRateLimit(
+  ip: string, 
+  path: string
+): Promise<{ allowed: boolean; remaining: number; reset: number }> {
   const isStrictEndpoint = path.startsWith('/api/') || 
                            path.startsWith('/login') || 
                            path.startsWith('/auth');
   
   const maxRequests = isStrictEndpoint ? rateLimitStrictMax : rateLimitMaxRequests;
-  const window = isStrictEndpoint ? rateLimitStrictWindow : rateLimitWindow;
+  const limiter = isStrictEndpoint ? strictLimiter : generalLimiter;
+
+  const token = `${ip}:${path}`;
   
-  const key = `${ip}:${path}`;
-  const entry = rateLimitStore.get(key);
+  const result = await limiter.check(maxRequests, token);
   
-  if (rateLimitStore.size > 10000) {
-    for (const [k, v] of rateLimitStore.entries()) {
-      if (v.resetTime < now) {
-        rateLimitStore.delete(k);
-      }
-    }
-  }
-  
-  if (!entry || entry.resetTime < now) {
-    const resetTime = now + window;
-    rateLimitStore.set(key, { count: 1, resetTime });
-    return { allowed: true, remaining: maxRequests - 1, reset: resetTime };
-  }
-  
-  if (entry.count >= maxRequests) {
-    return { allowed: false, remaining: 0, reset: entry.resetTime };
-  }
-  
-  entry.count++;
-  rateLimitStore.set(key, entry);
-  return { allowed: true, remaining: maxRequests - entry.count, reset: entry.resetTime };
+  return {
+    allowed: result.success,
+    remaining: result.remaining,
+    reset: result.reset,
+  };
 }
 
 function validateRequest(request: NextRequest): { valid: boolean; error?: string } {
@@ -133,7 +117,7 @@ function validateRequest(request: NextRequest): { valid: boolean; error?: string
 
 // Exports
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const path = url.pathname;
   
@@ -164,10 +148,9 @@ export function middleware(request: NextRequest) {
   }
   
   const clientIP = getClientIP(request);
-  const rateLimit = checkRateLimit(clientIP, path);
+  const rateLimit = await checkRateLimit(clientIP, path);
   
   if (!rateLimit.allowed) {
-    const resetDate = new Date(rateLimit.reset);
     return new NextResponse(
       JSON.stringify({ 
         error: 'Too Many Requests',

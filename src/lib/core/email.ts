@@ -1,6 +1,7 @@
 // Imports
 
 import nodemailer from 'nodemailer';
+import type { SendMailOptions } from 'nodemailer';
 import dotenv from 'dotenv';
 import { DataReturnObject } from '@/types/helper';
 
@@ -53,16 +54,13 @@ export async function createEmailTransporter(): Promise<DataReturnObject<nodemai
 export async function sendEmail(transporter: nodemailer.Transporter, to: string, subject: string, text: string, html?: string): Promise<DataReturnObject<boolean>> {
     try{
 
-        const mailOptions: any = {
+        const mailOptions: SendMailOptions = {
             from: `"${emailUser}" <${emailUser}>`,
             to: to,
             subject: subject,
             text: text,
+            ...(html && { html })
         };
-
-        if(html) {
-            mailOptions.html = html;
-        }
 
         const info = await transporter.sendMail(mailOptions);
 
@@ -92,16 +90,13 @@ export async function sendEmail(transporter: nodemailer.Transporter, to: string,
 export async function sendEmailToSystem(transporter: nodemailer.Transporter, subject: string, text: string, html?: string): Promise<DataReturnObject<boolean>> {
     try{
 
-        const mailOptions: any = {
+        const mailOptions: SendMailOptions = {
             from: `"${emailUser}" <${emailUser}>`,
             to: `${emailUser}`,
             subject: subject,
             text: text,
+            ...(html && { html })
         };
-
-        if(html) {
-            mailOptions.html = html;
-        }
 
         const info = await transporter.sendMail(mailOptions);
 
