@@ -179,6 +179,30 @@ export async function createTable(client: DatabaseClient, table: DatabaseTable):
             `);
         }
 
+        if (table.name === 'users') {
+            const triggerName = `trigger_check_password_expiration`;
+            const escapedTriggerName = escapeIdentifier(triggerName);
+            await client.query(`
+                DROP TRIGGER IF EXISTS ${escapedTriggerName} ON ${escapedTableName};
+                CREATE TRIGGER ${escapedTriggerName}
+                BEFORE INSERT OR UPDATE ON ${escapedTableName}
+                FOR EACH ROW
+                EXECUTE FUNCTION check_password_expiration();
+            `);
+        }
+
+        if (table.name === 'user_account') {
+            const triggerName = `trigger_delete_empty_accounts`;
+            const escapedTriggerName = escapeIdentifier(triggerName);
+            await client.query(`
+                DROP TRIGGER IF EXISTS ${escapedTriggerName} ON ${escapedTableName};
+                CREATE TRIGGER ${escapedTriggerName}
+                AFTER DELETE ON ${escapedTableName}
+                FOR EACH ROW
+                EXECUTE FUNCTION delete_empty_accounts();
+            `);
+        }
+
         return {
             status: true,
             data: true,
