@@ -11,6 +11,7 @@ import ErrorPopup from "./errorPopup";
 import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
+import { teamForm } from "@/utils/form/team";
 import { ReportProblemFormData } from "@/types/component";
 
 // Exports
@@ -43,7 +44,37 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 setContent(<div>This is the performance section where you can view the performance of teams and employeees</div>);
                 break;
             case "teams":
-                setContent(<div>This is the teams section where you can view the teams and their members</div>);
+                if(!setup.accountId) {
+                    setContent(
+                        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
+                            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
+                            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
+                        </div>
+                    );
+                    break;
+                }
+
+                setContent(
+                    <DataManagement 
+                        setup={{ 
+                            accountId: setup.accountId,
+                            title: 'Manage Teams', 
+                            description: 'This is the manage teams section where you can view the teams and their details', 
+                            createText: 'Create Team', 
+                            deleteStatus: true, 
+                            form: teamForm, 
+                            headers: ['ID', 'Name', 'Description', 'Last Updated', 'Created On'], 
+                            api: '/api/teams',
+                            accessStatus: true,
+                            access: {
+                                view: setup.permissions.includes('team.view'),
+                                create: setup.permissions.includes('team.create'),
+                                update: setup.permissions.includes('team.update'),
+                                delete: setup.permissions.includes('team.delete')
+                            }
+                        }} 
+                    />
+                );
                 break;
             case "tickets":
                 setContent(<div>This is the tickets section where you can view the tickets and their details</div>);

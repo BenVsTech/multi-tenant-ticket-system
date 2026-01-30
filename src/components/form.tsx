@@ -5,6 +5,10 @@ import { FormProps, element, FormDataTypes, ApiOptionData, Option } from "@/type
 import { useEffect, useState } from "react";
 import ErrorPopup from "./errorPopup";
 
+// Constants
+
+const APIs_REQUIRING_ACCOUNT_ID = ['/api/roles', '/api/teams', '/api/users'];
+
 // Exports
 
 export default function Form({ setup, onClose, onSubmit }: FormProps) {
@@ -31,7 +35,12 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 for(const apiOption of setup.content.apiOptions) {
                     
                     let apiUrl = apiOption.api;
-                    if(setup.accountId && (apiOption.api === '/api/roles' || apiOption.api.includes('/api/roles'))) {
+
+                    const requiresAccountId = setup.accountId !== null && setup.accountId !== undefined && APIs_REQUIRING_ACCOUNT_ID.some(api => 
+                        apiOption.api === api || apiOption.api.startsWith(api + '/')
+                    );
+                    
+                    if(requiresAccountId && setup.accountId !== null && setup.accountId !== undefined) {
                         const url = new URL(apiOption.api, window.location.origin);
                         url.searchParams.set('accountId', setup.accountId.toString());
                         apiUrl = url.toString();
@@ -72,7 +81,7 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
 
         getOptions();
 
-    }, [setup.content.apiOptionsStatus, setup.content.apiOptions])
+    }, [setup.content.apiOptionsStatus, setup.content.apiOptions, setup.accountId])
 
     useEffect(() => {
 
@@ -85,26 +94,53 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
 
             try{
 
-                const response = await fetch(setup.api, {
+                let apiUrl = setup.api;
+                
+                const isTeamsApi = setup.api && setup.api.startsWith('/api/teams/') && setup.api !== '/api/teams';
+                const isUsersApi = setup.api && setup.api.startsWith('/api/users/') && setup.api !== '/api/users';
+                
+                if(setup.accountId && (isTeamsApi || isUsersApi)) {
+                    try {
+                        const url = new URL(setup.api, window.location.origin);
+                        url.searchParams.set('accountId', setup.accountId.toString());
+                        apiUrl = url.toString();
+                    } catch(urlError) {
+                        const separator = setup.api.includes('?') ? '&' : '?';
+                        apiUrl = `${setup.api}${separator}accountId=${setup.accountId}`;
+                    }
+                }
+
+                const response = await fetch(apiUrl, {
                     method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                 });
     
                 if(!response.ok) {
-                    setErrorMessage('Failed to fetch ticket');
+                    const errorText = await response.text();
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(errorText);
+                    } catch {
+                        errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+                    }
+                    setErrorMessage(errorData.message || 'Failed to get pre-filled data');
                     setDataLoaded(true);
                     return;
                 }
     
                 const data = await response.json();
     
-                if(data.status) {
+                if(data.status && data.data) {
                     setFormData(data.data);
                 } else {
-                    setErrorMessage(data.message || 'Failed to fetch ticket');
+                    setErrorMessage(data.message || 'Failed to get pre-filled data');
                 }
 
             } catch(error: unknown) {
-                setErrorMessage('Failed to fetch ticket');
+                console.error('Error fetching pre-filled data:', error);
+                setErrorMessage(error instanceof Error ? error.message : 'Failed to get pre-filled data');
             } finally {
                 setDataLoaded(true);
             }
@@ -113,7 +149,7 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
 
         getData();
 
-    }, [setup.api])
+    }, [setup.api, setup.accountId])
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 
@@ -209,10 +245,11 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
 
                                         {apiOptions
                                             .find((apiOption) => apiOption.reference === element.optionApiRef)
-                                            ?.options?.map((option) => {
+                                            ?.options?.map((option, index) => {
                                                 const apiOption = option as { id: number | string; name: string };
+                                                const uniqueKey = `${element.optionApiRef}-${apiOption.id ?? index}`;
                                                 return (
-                                                    <option key={apiOption.id} value={apiOption.id}>{apiOption.name}</option>
+                                                    <option key={uniqueKey} value={apiOption.id}>{apiOption.name}</option>
                                                 );
                                             })
                                         }

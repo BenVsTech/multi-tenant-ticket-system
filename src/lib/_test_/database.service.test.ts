@@ -353,10 +353,11 @@ describe('Database Service', () => {
         };
 
         it('should create test user successfully', async () => {
-            // Arrange
+
             const mockRoleId = 1;
             const mockUserId = 10;
             const mockAccountId = 20;
+            const mockTeamId = 30;
             
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
                 status: true,
@@ -377,7 +378,12 @@ describe('Database Service', () => {
                 })
                 .mockResolvedValueOnce({
                     status: true,
-                    data: 30,
+                    data: mockTeamId,
+                    message: 'Team created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: 40,
                     message: 'User account created'
                 });
             
@@ -393,7 +399,7 @@ describe('Database Service', () => {
             expect(result.data).toBe(true);
             expect(result.message).toBe('Test user created successfully');
             expect(connectToDatabase).toHaveBeenCalledWith(false);
-            expect(dynamicSendData).toHaveBeenCalledTimes(3);
+            expect(dynamicSendData).toHaveBeenCalledTimes(4);
             expect(dynamicSendData).toHaveBeenNthCalledWith(
                 1,
                 mockDbClient,
@@ -411,9 +417,16 @@ describe('Database Service', () => {
             expect(dynamicSendData).toHaveBeenNthCalledWith(
                 3,
                 mockDbClient,
+                'team',
+                ['name', 'description', 'account_id'],
+                ['administration', 'Default administration team for account management', mockAccountId]
+            );
+            expect(dynamicSendData).toHaveBeenNthCalledWith(
+                4,
+                mockDbClient,
                 'user_account',
-                ['user_id', 'account_id', 'role_id'],
-                [mockUserId, mockAccountId, mockRoleId]
+                ['user_id', 'account_id', 'role_id', 'team_id'],
+                [mockUserId, mockAccountId, mockRoleId, mockTeamId]
             );
             expect(getRowsByColumnValue).toHaveBeenCalledWith(mockDbClient, 'role', 'name', mockTestUser.role.name);
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
@@ -486,77 +499,10 @@ describe('Database Service', () => {
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
         });
 
-        it('should return error when role is not found', async () => {
+        it('should return error when creating team fails', async () => {
+            // Arrange
             const mockUserId = 10;
             const mockAccountId = 20;
-            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
-                status: true,
-                data: mockDbClient,
-                message: 'Connected to database'
-            });
-            (dynamicSendData as jest.Mock)
-                .mockResolvedValueOnce({
-                    status: true,
-                    data: mockUserId,
-                    message: 'User created'
-                })
-                .mockResolvedValueOnce({
-                    status: true,
-                    data: mockAccountId,
-                    message: 'Account created'
-                });
-            (getRowsByColumnValue as jest.Mock).mockResolvedValueOnce({
-                status: true,
-                data: [],
-                message: 'Role not found'
-            });
-
-            const result = await createTestUser(mockTestUser);
-
-            expect(result.status).toBe(false);
-            expect(result.data).toBe(null);
-            expect(result.message).toBe('Role not found');
-            expect(getRowsByColumnValue).toHaveBeenCalledWith(mockDbClient, 'role', 'name', mockTestUser.role.name);
-            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
-        });
-
-        it('should return error when getRowsByColumnValue fails', async () => {
-            const mockUserId = 10;
-            const mockAccountId = 20;
-            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
-                status: true,
-                data: mockDbClient,
-                message: 'Connected to database'
-            });
-            (dynamicSendData as jest.Mock)
-                .mockResolvedValueOnce({
-                    status: true,
-                    data: mockUserId,
-                    message: 'User created'
-                })
-                .mockResolvedValueOnce({
-                    status: true,
-                    data: mockAccountId,
-                    message: 'Account created'
-                });
-            (getRowsByColumnValue as jest.Mock).mockResolvedValueOnce({
-                status: false,
-                data: null,
-                message: 'Failed to get role'
-            });
-
-            const result = await createTestUser(mockTestUser);
-
-            expect(result.status).toBe(false);
-            expect(result.data).toBe(null);
-            expect(result.message).toBe('Failed to get role');
-            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
-        });
-
-        it('should return error when creating user_account fails', async () => {
-            const mockUserId = 10;
-            const mockAccountId = 20;
-            const mockRoleId = 1;
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
                 status: true,
                 data: mockDbClient,
@@ -576,6 +522,126 @@ describe('Database Service', () => {
                 .mockResolvedValueOnce({
                     status: false,
                     data: null,
+                    message: 'Failed to create team'
+                });
+
+            const result = await createTestUser(mockTestUser);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('Failed to create team');
+            expect(dynamicSendData).toHaveBeenCalledTimes(3);
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
+        });
+
+        it('should return error when role is not found', async () => {
+            const mockUserId = 10;
+            const mockAccountId = 20;
+            const mockTeamId = 30;
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockDbClient,
+                message: 'Connected to database'
+            });
+            (dynamicSendData as jest.Mock)
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockUserId,
+                    message: 'User created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockAccountId,
+                    message: 'Account created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockTeamId,
+                    message: 'Team created'
+                });
+            (getRowsByColumnValue as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: [],
+                message: 'Role not found'
+            });
+
+            const result = await createTestUser(mockTestUser);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('Role not found');
+            expect(getRowsByColumnValue).toHaveBeenCalledWith(mockDbClient, 'role', 'name', mockTestUser.role.name);
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
+        });
+
+        it('should return error when getRowsByColumnValue fails', async () => {
+            const mockUserId = 10;
+            const mockAccountId = 20;
+            const mockTeamId = 30;
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockDbClient,
+                message: 'Connected to database'
+            });
+            (dynamicSendData as jest.Mock)
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockUserId,
+                    message: 'User created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockAccountId,
+                    message: 'Account created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockTeamId,
+                    message: 'Team created'
+                });
+            (getRowsByColumnValue as jest.Mock).mockResolvedValueOnce({
+                status: false,
+                data: null,
+                message: 'Failed to get role'
+            });
+
+            const result = await createTestUser(mockTestUser);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('Failed to get role');
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
+        });
+
+        it('should return error when creating user_account fails', async () => {
+            const mockUserId = 10;
+            const mockAccountId = 20;
+            const mockTeamId = 30;
+            const mockRoleId = 1;
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockDbClient,
+                message: 'Connected to database'
+            });
+            (dynamicSendData as jest.Mock)
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockUserId,
+                    message: 'User created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockAccountId,
+                    message: 'Account created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockTeamId,
+                    message: 'Team created'
+                })
+                .mockResolvedValueOnce({
+                    status: false,
+                    data: null,
                     message: 'Failed to create user_account'
                 });
             (getRowsByColumnValue as jest.Mock).mockResolvedValueOnce({
@@ -589,7 +655,7 @@ describe('Database Service', () => {
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
             expect(result.message).toBe('Failed to create user_account');
-            expect(dynamicSendData).toHaveBeenCalledTimes(3);
+            expect(dynamicSendData).toHaveBeenCalledTimes(4);
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
         });
 

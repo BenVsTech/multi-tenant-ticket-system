@@ -95,7 +95,14 @@ export default function DataManagement({ setup }: DataManagementProps) {
         }
 
         try {
-            const url = isUpdate ? `${setup.api}/${selectedRow}` : setup.api;
+            let url = isUpdate ? `${setup.api}/${selectedRow}` : setup.api;
+            
+            if(isUpdate && !isAccountsApi && setup.accountId) {
+                const urlObj = new URL(url, window.location.origin);
+                urlObj.searchParams.set('accountId', setup.accountId.toString());
+                url = urlObj.toString();
+            }
+            
             const method = isUpdate ? 'PUT' : 'POST';
 
             const requestBody = isUpdate || isAccountsApi ? formData : { ...formData, accountId: setup.accountId };

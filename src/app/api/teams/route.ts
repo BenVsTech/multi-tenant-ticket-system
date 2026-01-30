@@ -1,14 +1,14 @@
 // Imports
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAllUsers, createUser } from "@/lib/service/user.service";
+import { getAllTeams, createTeam } from "@/lib/service/team.service";
 import { apiHandler, handleCloseDatabaseConnections } from "@/lib/core/helper";
 import { DataReturnObject } from "@/types/helper";
-import { createUserSchema, validateRequestBody } from "@/lib/core/zod";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/core/auth";
 import { connectToDatabase, DatabaseClient } from "@/lib/core/database";
 import { verifyAccountPermission } from "@/lib/core/validation";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/core/auth";
+import { createTeamSchema, validateRequestBody } from "@/lib/core/zod";
 
 // Exports
 
@@ -49,6 +49,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<DataReturn
         let dbClient: DatabaseClient | null = null;
 
         try {
+            
             const databaseConnection = await connectToDatabase(false);
             if(!databaseConnection.status || !databaseConnection.data) {
                 return {
@@ -60,12 +61,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<DataReturn
             
             dbClient = databaseConnection.data;
 
-            const permissionCheck = await verifyAccountPermission(dbClient, userId, accountId, 'user.view');
+            const permissionCheck = await verifyAccountPermission(dbClient, userId, accountId, 'team.view');
             if(!permissionCheck.status || !permissionCheck.data) {
                 return {
                     status: false,
                     data: null,
-                    message: permissionCheck.message || 'You do not have permission to view users'
+                    message: permissionCheck.message || 'You do not have permission to view teams'
                 };
             }
 
@@ -79,22 +80,22 @@ export async function GET(request: NextRequest): Promise<NextResponse<DataReturn
             await handleCloseDatabaseConnections(null, dbClient);
         }
 
-        const getAllUsersResult = await getAllUsers(userId, accountId);
-        if(!getAllUsersResult.status || !getAllUsersResult.data) {
+        const getAllTeamsResult = await getAllTeams(userId, accountId);
+        if(!getAllTeamsResult.status || !getAllTeamsResult.data) {
             return {
                 status: false,
                 data: null,
-                message: getAllUsersResult.message
+                message: getAllTeamsResult.message
             };
         }
 
         return {
             status: true,
-            data: getAllUsersResult.data,
-            message: getAllUsersResult.message
+            data: getAllTeamsResult.data,
+            message: getAllTeamsResult.message
         };
 
-    }, 'GET /api/users', 200, 400);
+    }, 'GET /api/teams', 200, 400);
 }
 
 export async function POST(request: Request): Promise<NextResponse<DataReturnObject<boolean>>> {
@@ -113,7 +114,7 @@ export async function POST(request: Request): Promise<NextResponse<DataReturnObj
 
         const body = await request.json();
 
-        const validationResult = await validateRequestBody(createUserSchema, body);
+        const validationResult = await validateRequestBody(createTeamSchema, body);
         if(!validationResult.status || !validationResult.data) {
             return {
                 status: false,
@@ -122,7 +123,7 @@ export async function POST(request: Request): Promise<NextResponse<DataReturnObj
             };
         }
 
-        const { name, email, role_id, team_id, accountId } = validationResult.data;
+        const { name, description, accountId } = validationResult.data;
 
         let dbClient: DatabaseClient | null = null;
 
@@ -138,12 +139,12 @@ export async function POST(request: Request): Promise<NextResponse<DataReturnObj
             
             dbClient = databaseConnection.data;
 
-            const permissionCheck = await verifyAccountPermission(dbClient, userId, accountId, 'user.create');
+            const permissionCheck = await verifyAccountPermission(dbClient, userId, accountId, 'team.create');
             if(!permissionCheck.status || !permissionCheck.data) {
                 return {
                     status: false,
                     data: null,
-                    message: permissionCheck.message || 'You do not have permission to create users'
+                    message: permissionCheck.message || 'You do not have permission to create teams'
                 };
             }
 
@@ -157,21 +158,21 @@ export async function POST(request: Request): Promise<NextResponse<DataReturnObj
             await handleCloseDatabaseConnections(null, dbClient);
         }
 
-        const createUserResult = await createUser(userId, accountId, name, email, role_id, team_id);
-        if(!createUserResult.status || !createUserResult.data) {
+        const createTeamResult = await createTeam(userId, accountId, name, description);
+        if(!createTeamResult.status || !createTeamResult.data) {
             return {
                 status: false,
                 data: null,
-                message: createUserResult.message
+                message: createTeamResult.message
             };
         }
 
         return {
             status: true,
             data: true,
-            message: 'User created successfully'
+            message: 'Team created successfully'
         };
 
-    }, 'POST /api/users', 201, 400);
+    }, 'POST /api/teams', 201, 400);
 }
 

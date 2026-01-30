@@ -12,6 +12,10 @@ export const userForm: FormElements = {
         {
             api: '/api/roles',
             ref: 'roles'
+        },
+        {
+            api: '/api/teams/options',
+            ref: 'teams'
         }
     ],
     elements: [
@@ -52,6 +56,19 @@ export const userForm: FormElements = {
             required: true,
             optionApiStatus: true,
             optionApiRef: 'roles',
+            options: []
+        },
+        {
+            tag: 'select',
+            type: 'select',
+            label: 'User Team',
+            instructions: 'Select the team of the user',
+            id: 'team_id',
+            name: 'team_id',
+            placeholder: 'Select the team of the user',
+            required: true,
+            optionApiStatus: true,
+            optionApiRef: 'teams',
             options: []
         }
     ]

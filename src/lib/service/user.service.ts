@@ -100,7 +100,7 @@ export async function getAllUsers(userId: number, accountId: number): Promise<Da
     }
 }
 
-export async function createUser(userId: number, accountId: number, name: string, email: string, roleId: number): Promise<DataReturnObject<boolean>> {
+export async function createUser(userId: number, accountId: number, name: string, email: string, roleId: number, teamId: number): Promise<DataReturnObject<boolean>> {
 
     let dbClient: DatabaseClient | null = null;
 
@@ -192,11 +192,24 @@ export async function createUser(userId: number, accountId: number, name: string
             }
         }
 
+        const teamVerificationResult = await dbClient.query(
+            `SELECT id FROM team WHERE id = $1 AND account_id = $2`,
+            [teamId, accountId]
+        );
+        
+        if(!teamVerificationResult.rows || teamVerificationResult.rows.length === 0) {
+            return {
+                status: false,
+                data: null,
+                message: 'Team does not belong to this account'
+            };
+        }
+
         const createUserAccountResult = await dynamicSendData(
             dbClient,
             'user_account',
-            ['user_id', 'account_id', 'role_id'],
-            [targetUserId, accountId, roleId]
+            ['user_id', 'account_id', 'role_id', 'team_id'],
+            [targetUserId, accountId, roleId, teamId]
         );
         if(!createUserAccountResult.status || !createUserAccountResult.data) {
             return {

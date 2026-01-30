@@ -1,6 +1,6 @@
 // Imports
 
-import { getAllUsers, createUser, deleteUser } from '@/lib/service/user.service';
+import { getAllUsers, createUser, deleteUser, deleteUserFromSystem } from '@/lib/service/user.service';
 import { connectToDatabase, DatabaseClient } from '@/lib/core/database';
 import { dynamicSendData, getRowsByColumnValue, getRowById, deleteRowById } from '@/lib/core/database/queries';
 import { handleCloseDatabaseConnections, generatePassword, formatDate } from '@/lib/core/helper';
@@ -272,6 +272,7 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'test@example.com';
             const roleId = 2;
+            const teamId = 5;
             const mockPassword = 'generatedPassword123';
             const mockNewUserId = 20;
 
@@ -317,11 +318,12 @@ describe('User Service', () => {
                 message: 'Email sent'
             });
 
-            mockDbClient.query = jest.fn().mockResolvedValueOnce({
-                rows: []
-            });
+            mockDbClient.query = jest.fn()
+                .mockResolvedValueOnce({
+                    rows: [{ id: teamId }]
+                });
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(true);
             expect(result.data).toBe(true);
@@ -329,6 +331,13 @@ describe('User Service', () => {
             expect(getRowsByColumnValue).toHaveBeenCalledWith(mockDbClient, 'users', 'email', email.toLowerCase().trim());
             expect(generatePassword).toHaveBeenCalled();
             expect(dynamicSendData).toHaveBeenCalledTimes(2);
+            expect(dynamicSendData).toHaveBeenNthCalledWith(
+                2,
+                mockDbClient,
+                'user_account',
+                ['user_id', 'account_id', 'role_id', 'team_id'],
+                [mockNewUserId, accountId, roleId, teamId]
+            );
             expect(sendEmailToUser).toHaveBeenCalledWith(
                 email.toLowerCase().trim(),
                 'Welcome to our platform',
@@ -343,6 +352,7 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'existing@example.com';
             const roleId = 2;
+            const teamId = 5;
             const mockExistingUserId = 15;
 
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
@@ -363,9 +373,13 @@ describe('User Service', () => {
                 message: 'User found'
             });
 
-            mockDbClient.query = jest.fn().mockResolvedValueOnce({
-                rows: []
-            });
+            mockDbClient.query = jest.fn()
+                .mockResolvedValueOnce({
+                    rows: []
+                })
+                .mockResolvedValueOnce({
+                    rows: [{ id: teamId }]
+                });
 
             (dynamicSendData as jest.Mock).mockResolvedValueOnce({
                 status: true,
@@ -373,13 +387,19 @@ describe('User Service', () => {
                 message: 'User account created'
             });
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(true);
             expect(result.data).toBe(true);
             expect(result.message).toBe('User created successfully');
             expect(generatePassword).not.toHaveBeenCalled();
             expect(sendEmailToUser).not.toHaveBeenCalled();
+            expect(dynamicSendData).toHaveBeenCalledWith(
+                mockDbClient,
+                'user_account',
+                ['user_id', 'account_id', 'role_id', 'team_id'],
+                [mockExistingUserId, accountId, roleId, teamId]
+            );
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
         });
 
@@ -389,6 +409,7 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'existing@example.com';
             const roleId = 2;
+            const teamId = 5;
             const mockExistingUserId = 15;
 
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
@@ -413,7 +434,7 @@ describe('User Service', () => {
                 rows: [{ id: 1, user_id: mockExistingUserId, account_id: accountId }]
             });
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
@@ -427,6 +448,7 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'test@example.com';
             const roleId = 2;
+            const teamId = 5;
 
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
                 status: false,
@@ -434,7 +456,7 @@ describe('User Service', () => {
                 message: 'Connection failed'
             });
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
@@ -448,6 +470,7 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'test@example.com';
             const roleId = 2;
+            const teamId = 5;
 
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
                 status: true,
@@ -461,7 +484,7 @@ describe('User Service', () => {
                 message: 'Access denied'
             });
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
@@ -475,6 +498,7 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'test@example.com';
             const roleId = 2;
+            const teamId = 5;
 
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
                 status: true,
@@ -500,7 +524,7 @@ describe('User Service', () => {
                 message: 'Failed to generate password'
             });
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
@@ -514,6 +538,7 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'test@example.com';
             const roleId = 2;
+            const teamId = 5;
             const mockPassword = 'generatedPassword123';
 
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
@@ -546,11 +571,69 @@ describe('User Service', () => {
                 message: 'Failed to create user'
             });
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
             expect(result.message).toBe('Failed to create user');
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
+        });
+
+        it('should return error when team does not belong to account', async () => {
+            const userId = 1;
+            const accountId = 10;
+            const name = 'Test User';
+            const email = 'test@example.com';
+            const roleId = 2;
+            const teamId = 5;
+            const mockPassword = 'generatedPassword123';
+            const mockNewUserId = 20;
+
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockDbClient,
+                message: 'Connected to database'
+            });
+
+            (verifyAccountAccess as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: true,
+                message: 'Access granted'
+            });
+
+            (getRowsByColumnValue as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: [],
+                message: 'User not found'
+            });
+
+            (generatePassword as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockPassword,
+                message: 'Password generated'
+            });
+
+            (dynamicSendData as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockNewUserId,
+                message: 'User created'
+            });
+
+            (sendEmailToUser as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: true,
+                message: 'Email sent'
+            });
+
+            mockDbClient.query = jest.fn().mockResolvedValueOnce({
+                rows: []
+            });
+
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('Team does not belong to this account');
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
         });
 
@@ -560,6 +643,7 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'test@example.com';
             const roleId = 2;
+            const teamId = 5;
             const mockPassword = 'generatedPassword123';
             const mockNewUserId = 20;
 
@@ -606,10 +690,10 @@ describe('User Service', () => {
             });
 
             mockDbClient.query = jest.fn().mockResolvedValueOnce({
-                rows: []
+                rows: [{ id: teamId }]
             });
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
@@ -623,10 +707,11 @@ describe('User Service', () => {
             const name = 'Test User';
             const email = 'test@example.com';
             const roleId = 2;
+            const teamId = 5;
 
             (connectToDatabase as jest.Mock).mockRejectedValueOnce(new Error('Unexpected error'));
 
-            const result = await createUser(userId, accountId, name, email, roleId);
+            const result = await createUser(userId, accountId, name, email, roleId, teamId);
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);
@@ -854,6 +939,154 @@ describe('User Service', () => {
             (connectToDatabase as jest.Mock).mockRejectedValueOnce(new Error('Unexpected error'));
 
             const result = await deleteUser(userId, accountId, userAccountId);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('Database operation failed');
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, null);
+        });
+    });
+
+    describe('deleteUserFromSystem', () => {
+        it('should delete user from system successfully', async () => {
+            const targetUserId = 15;
+            const mockUser = {
+                id: targetUserId,
+                name: 'Test User',
+                email: 'test@example.com',
+                password: 'hashed',
+                must_change_password: false,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockDbClient,
+                message: 'Connected to database'
+            });
+
+            (getRowById as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockUser,
+                message: 'User found'
+            });
+
+            mockDbClient.query = jest.fn().mockResolvedValueOnce({
+                rows: []
+            });
+
+            (deleteRowById as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: true,
+                message: 'User deleted'
+            });
+
+            const result = await deleteUserFromSystem(targetUserId);
+
+            expect(result.status).toBe(true);
+            expect(result.data).toBe(true);
+            expect(result.message).toBe('User deleted successfully from the system');
+            expect(getRowById).toHaveBeenCalledWith(mockDbClient, 'users', targetUserId);
+            expect(mockDbClient.query).toHaveBeenCalledWith(
+                `DELETE FROM user_account WHERE user_id = $1`,
+                [targetUserId]
+            );
+            expect(deleteRowById).toHaveBeenCalledWith(mockDbClient, 'users', targetUserId);
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
+        });
+
+        it('should return error when database connection fails', async () => {
+            const targetUserId = 15;
+
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
+                status: false,
+                data: null,
+                message: 'Connection failed'
+            });
+
+            const result = await deleteUserFromSystem(targetUserId);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('Connection failed');
+            expect(getRowById).not.toHaveBeenCalled();
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, null);
+        });
+
+        it('should return error when user not found', async () => {
+            const targetUserId = 15;
+
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockDbClient,
+                message: 'Connected to database'
+            });
+
+            (getRowById as jest.Mock).mockResolvedValueOnce({
+                status: false,
+                data: null,
+                message: 'User not found'
+            });
+
+            const result = await deleteUserFromSystem(targetUserId);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('User not found');
+            expect(mockDbClient.query).not.toHaveBeenCalled();
+            expect(deleteRowById).not.toHaveBeenCalled();
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
+        });
+
+        it('should return error when delete fails', async () => {
+            const targetUserId = 15;
+            const mockUser = {
+                id: targetUserId,
+                name: 'Test User',
+                email: 'test@example.com',
+                password: 'hashed',
+                must_change_password: false,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockDbClient,
+                message: 'Connected to database'
+            });
+
+            (getRowById as jest.Mock).mockResolvedValueOnce({
+                status: true,
+                data: mockUser,
+                message: 'User found'
+            });
+
+            mockDbClient.query = jest.fn().mockResolvedValueOnce({
+                rows: []
+            });
+
+            (deleteRowById as jest.Mock).mockResolvedValueOnce({
+                status: false,
+                data: null,
+                message: 'Failed to delete user'
+            });
+
+            const result = await deleteUserFromSystem(targetUserId);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('Failed to delete user');
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
+        });
+
+        it('should handle exceptions and return error message', async () => {
+            const targetUserId = 15;
+
+            (connectToDatabase as jest.Mock).mockRejectedValueOnce(new Error('Unexpected error'));
+
+            const result = await deleteUserFromSystem(targetUserId);
 
             expect(result.status).toBe(false);
             expect(result.data).toBe(null);

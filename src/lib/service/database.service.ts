@@ -160,6 +160,22 @@ export async function createTestUser(user: TestUser): Promise<DataReturnObject<b
 
         const accountId = sendAccountDetailsResult.data;
 
+        const createTeamResult = await dynamicSendData(
+            dbClient,
+            'team',
+            ['name', 'description', 'account_id'],
+            ['administration', 'Default administration team for account management', accountId]
+        );
+        if(!createTeamResult.status || !createTeamResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: createTeamResult.message
+            };
+        }
+
+        const administrationTeamId = createTeamResult.data;
+
         const getRoleResult = await getRowsByColumnValue(dbClient, 'role', 'name', user.role.name);
         if(!getRoleResult.status || !getRoleResult.data) {
             return {
@@ -182,8 +198,8 @@ export async function createTestUser(user: TestUser): Promise<DataReturnObject<b
         const sendUserAccountResult = await dynamicSendData(
             dbClient, 
             'user_account', 
-            ['user_id', 'account_id', 'role_id'], 
-            [userId, accountId, roleId]
+            ['user_id', 'account_id', 'role_id', 'team_id'], 
+            [userId, accountId, roleId, administrationTeamId]
         );
         if(!sendUserAccountResult.status || !sendUserAccountResult.data) {
             return {
