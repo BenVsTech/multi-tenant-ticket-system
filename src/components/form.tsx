@@ -5,6 +5,10 @@ import { FormProps, element, FormDataTypes, ApiOptionData, Option } from "@/type
 import { useEffect, useState } from "react";
 import ErrorPopup from "./errorPopup";
 
+// Constants
+
+const APIs_REQUIRING_ACCOUNT_ID = ['/api/roles', '/api/teams', '/api/users'];
+
 // Exports
 
 export default function Form({ setup, onClose, onSubmit }: FormProps) {
@@ -31,7 +35,7 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 for(const apiOption of setup.content.apiOptions) {
                     
                     let apiUrl = apiOption.api;
-                    if(setup.accountId && (apiOption.api === '/api/roles' || apiOption.api.includes('/api/roles'))) {
+                    if(setup.accountId && APIs_REQUIRING_ACCOUNT_ID.some(api => apiOption.api === api || apiOption.api.includes(api))) {
                         const url = new URL(apiOption.api, window.location.origin);
                         url.searchParams.set('accountId', setup.accountId.toString());
                         apiUrl = url.toString();
@@ -90,7 +94,7 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 });
     
                 if(!response.ok) {
-                    setErrorMessage('Failed to fetch ticket');
+                    setErrorMessage('Failed to get pre-filled data');
                     setDataLoaded(true);
                     return;
                 }
@@ -100,11 +104,11 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 if(data.status) {
                     setFormData(data.data);
                 } else {
-                    setErrorMessage(data.message || 'Failed to fetch ticket');
+                    setErrorMessage(data.message || 'Failed to get pre-filled data');
                 }
 
             } catch(error: unknown) {
-                setErrorMessage('Failed to fetch ticket');
+                setErrorMessage('Failed to get pre-filled data');
             } finally {
                 setDataLoaded(true);
             }

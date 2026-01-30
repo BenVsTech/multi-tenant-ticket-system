@@ -86,6 +86,22 @@ export async function createAccount(userId: number, name: string, description: s
 
         const accountId = sendAccountDetailsResult.data;
 
+        const createTeamResult = await dynamicSendData(
+            dbClient,
+            'team',
+            ['name', 'description', 'account_id'],
+            ['administration', 'Default administration team for account management', accountId]
+        );
+        if(!createTeamResult.status || !createTeamResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: createTeamResult.message
+            };
+        }
+
+        const administrationTeamId = createTeamResult.data;
+
         const getOwnerRoleResult = await getRowsByColumnValue(dbClient, 'role', 'name', 'owner');
         if(!getOwnerRoleResult.status || !getOwnerRoleResult.data) {
             return {
@@ -100,8 +116,8 @@ export async function createAccount(userId: number, name: string, description: s
         const sendUserAccountResult = await dynamicSendData(
             dbClient,
             'user_account',
-            ['user_id', 'account_id', 'role_id'],
-            [userId, accountId, ownerRoleId]
+            ['user_id', 'account_id', 'role_id', 'team_id'],
+            [userId, accountId, ownerRoleId, administrationTeamId]
         );
         if(!sendUserAccountResult.status || !sendUserAccountResult.data) {
             return {

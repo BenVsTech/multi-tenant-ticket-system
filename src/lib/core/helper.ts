@@ -5,7 +5,6 @@ import { closeDatabaseConnection } from "./database";
 import { sensitiveFieldPatterns } from "@/utils/constants";
 import { DataReturnObject } from "@/types/helper";
 import { NextResponse } from "next/server";
-import { randomBytes } from "crypto";
 
 // Functions
 
@@ -143,6 +142,12 @@ export const logger = {
     info: logInfo,
 };
 
+function getRandomByte(): number {
+    const array = new Uint8Array(1);
+    crypto.getRandomValues(array);
+    return array[0];
+}
+
 export async function generatePassword(retryCount: number = 0): Promise<DataReturnObject<string>> {
     const maxRetries = 5;
     
@@ -155,28 +160,28 @@ export async function generatePassword(retryCount: number = 0): Promise<DataRetu
         const minLength = 16;
         const maxLength = 24;
         const lengthRange = maxLength - minLength + 1;
-        const lengthOffset = randomBytes(1)[0] % lengthRange;
+        const lengthOffset = getRandomByte() % lengthRange;
         const targetLength = minLength + lengthOffset;
 
         const requiredChars = [
-            uppercase[randomBytes(1)[0] % uppercase.length],
-            lowercase[randomBytes(1)[0] % lowercase.length],
-            numbers[randomBytes(1)[0] % numbers.length],
-            special[randomBytes(1)[0] % special.length]
+            uppercase[getRandomByte() % uppercase.length],
+            lowercase[getRandomByte() % lowercase.length],
+            numbers[getRandomByte() % numbers.length],
+            special[getRandomByte() % special.length]
         ];
 
         const remainingLength = targetLength - requiredChars.length;
         const randomChars: string[] = [];
         
         for (let i = 0; i < remainingLength; i++) {
-            const randomIndex = randomBytes(1)[0] % allChars.length;
+            const randomIndex = getRandomByte() % allChars.length;
             randomChars.push(allChars[randomIndex]);
         }
 
         const allPasswordChars = [...requiredChars, ...randomChars];
 
         for (let i = allPasswordChars.length - 1; i > 0; i--) {
-            const j = randomBytes(1)[0] % (i + 1);
+            const j = getRandomByte() % (i + 1);
             [allPasswordChars[i], allPasswordChars[j]] = [allPasswordChars[j], allPasswordChars[i]];
         }
 

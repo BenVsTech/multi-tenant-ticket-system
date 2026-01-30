@@ -239,6 +239,41 @@ export const databaseConfiguration: DatabaseConfiguration = {
             usePasswordEncryptionTrigger: false,
         },
         {
+            name: 'team',
+            columns: [
+                {
+                    name: 'id',
+                    type: databaseConstants.primaryKey,
+                },
+                {
+                    name: 'name',
+                    type: databaseConstants.varchar(255),
+                },
+                {
+                    name: 'description',
+                    type: databaseConstants.varchar(512),
+                },
+                {
+                    name: 'account_id',
+                    type: databaseConstants.integer,
+                },
+                {
+                    name: 'updated_at',
+                    type: databaseConstants.defaultTimestamp,
+                },
+                {
+                    name: 'created_at',
+                    type: databaseConstants.defaultTimestamp,
+                },
+            ],
+            foreignKeys: `
+                FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
+            `,
+            uniqueConstraints: '',
+            useUpdatedAtTrigger: true,
+            usePasswordEncryptionTrigger: false,
+        },
+        {
             name: 'user_account',
             columns: [
                 {
@@ -258,6 +293,10 @@ export const databaseConfiguration: DatabaseConfiguration = {
                     type: databaseConstants.integer,
                 },
                 {
+                    name: 'team_id',
+                    type: databaseConstants.integer,
+                },
+                {
                     name: 'updated_at',
                     type: databaseConstants.defaultTimestamp,
                 },
@@ -269,79 +308,8 @@ export const databaseConfiguration: DatabaseConfiguration = {
             foreignKeys: `
                 FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
                 FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            `,
-            uniqueConstraints: '',
-            useUpdatedAtTrigger: true,
-            usePasswordEncryptionTrigger: false,
-        },
-        {
-            name: 'team',
-            columns: [
-                {
-                    name: 'id',
-                    type: databaseConstants.primaryKey,
-                },
-                {
-                    name: 'name',
-                    type: databaseConstants.integer,
-                },
-                {
-                    name: 'description',
-                    type: databaseConstants.integer,
-                },
-                {
-                    name: 'account_id',
-                    type: databaseConstants.integer,
-                },
-                {
-                    name: 'updated_at',
-                    type: databaseConstants.defaultTimestamp,
-                },
-                {
-                    name: 'created_at',
-                    type: databaseConstants.defaultTimestamp,
-                },
-            ],
-            foreignKeys: `
-                FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
-            `,
-            uniqueConstraints: '',
-            useUpdatedAtTrigger: true,
-            usePasswordEncryptionTrigger: false,
-        },
-        {
-            name: 'team_user',
-            columns: [
-                {
-                    name: 'id',
-                    type: databaseConstants.primaryKey,
-                },
-                {
-                    name: 'team_id',
-                    type: databaseConstants.integer,
-                },
-                {
-                    name: 'user_id',
-                    type: databaseConstants.integer,
-                },
-                {
-                    name: 'account_id',
-                    type: databaseConstants.integer,
-                },
-                {
-                    name: 'updated_at',
-                    type: databaseConstants.defaultTimestamp,
-                },
-                {
-                    name: 'created_at',
-                    type: databaseConstants.defaultTimestamp,
-                },
-            ],
-            foreignKeys: `
-                FOREIGN KEY (team_id) REFERENCES team(id) ON DELETE CASCADE,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
+                FOREIGN KEY (team_id) REFERENCES team(id) ON DELETE CASCADE
             `,
             uniqueConstraints: '',
             useUpdatedAtTrigger: true,

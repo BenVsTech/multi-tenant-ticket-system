@@ -195,7 +195,12 @@ export default function Home() {
           />
         </div>
         <div className={`${styles['width-100']} ${styles['height-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']}`}>
-          <RenderSection setup={{ accountId: Number(selectedAccount), permissions: permissions, reference: selectedContent || 'home' }} />
+          <RenderSection 
+            setup={{ 
+              accountId: Number(selectedAccount), 
+              permissions: permissions, 
+              reference: selectedContent || 'home' 
+            }} />
         </div>
       </div>
     </div>

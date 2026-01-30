@@ -192,11 +192,36 @@ export async function createUser(userId: number, accountId: number, name: string
             }
         }
 
+        let administrationTeamId: number;
+        const getAdministrationTeamResult = await dbClient.query(
+            `SELECT id FROM team WHERE account_id = $1 AND name = $2`,
+            [accountId, 'administration']
+        );
+        
+        if(getAdministrationTeamResult.rows && getAdministrationTeamResult.rows.length > 0) {
+            administrationTeamId = getAdministrationTeamResult.rows[0].id;
+        } else {
+            const createTeamResult = await dynamicSendData(
+                dbClient,
+                'team',
+                ['name', 'description', 'account_id'],
+                ['administration', 'Default administration team for account management', accountId]
+            );
+            if(!createTeamResult.status || !createTeamResult.data) {
+                return {
+                    status: false,
+                    data: null,
+                    message: createTeamResult.message || 'Failed to create administration team'
+                };
+            }
+            administrationTeamId = createTeamResult.data;
+        }
+
         const createUserAccountResult = await dynamicSendData(
             dbClient,
             'user_account',
-            ['user_id', 'account_id', 'role_id'],
-            [targetUserId, accountId, roleId]
+            ['user_id', 'account_id', 'role_id', 'team_id'],
+            [targetUserId, accountId, roleId, administrationTeamId]
         );
         if(!createUserAccountResult.status || !createUserAccountResult.data) {
             return {
