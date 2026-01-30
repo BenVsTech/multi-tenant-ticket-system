@@ -14,7 +14,7 @@ export const userForm: FormElements = {
             ref: 'roles'
         },
         {
-            api: '/api/teams',
+            api: '/api/teams/options',
             ref: 'teams'
         }
     ],

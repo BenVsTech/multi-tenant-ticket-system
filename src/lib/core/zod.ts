@@ -112,3 +112,18 @@ export const userAccountIdParamSchema = z.object({
     id: z.coerce.number().int().positive('User Account ID must be a positive integer'),
 });
 
+export const createTeamSchema = z.object({
+    name: z.string().min(1, 'Name is required').max(255),
+    description: z.string().min(1, 'Description is required').max(512),
+    accountId: z.coerce.number().int().positive('Account ID must be a positive integer'),
+});
+
+export const updateTeamSchema = z.object({
+    name: z.string().min(1, 'Name must be at least 1 character').max(255),
+    description: z.string().min(1, 'Description must be at least 1 character').max(512),
+}).partial();
+
+export const teamIdParamSchema = z.object({
+    id: z.coerce.number().int().positive('Team ID must be a positive integer'),
+});
+
