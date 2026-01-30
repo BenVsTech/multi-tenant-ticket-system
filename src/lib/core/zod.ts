@@ -104,6 +104,7 @@ export const createUserSchema = z.object({
     name: z.string().min(1, 'Name is required').max(100),
     email: z.string().email('Invalid email address'),
     role_id: z.coerce.number().int().positive('Role ID must be a positive integer'),
+    team_id: z.coerce.number().int().positive('Team ID must be a positive integer'),
     accountId: z.coerce.number().int().positive('Account ID must be a positive integer'),
 });
 

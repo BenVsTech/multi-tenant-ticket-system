@@ -122,7 +122,7 @@ export async function POST(request: Request): Promise<NextResponse<DataReturnObj
             };
         }
 
-        const { name, email, role_id, accountId } = validationResult.data;
+        const { name, email, role_id, team_id, accountId } = validationResult.data;
 
         let dbClient: DatabaseClient | null = null;
 
@@ -157,7 +157,7 @@ export async function POST(request: Request): Promise<NextResponse<DataReturnObj
             await handleCloseDatabaseConnections(null, dbClient);
         }
 
-        const createUserResult = await createUser(userId, accountId, name, email, role_id);
+        const createUserResult = await createUser(userId, accountId, name, email, role_id, team_id);
         if(!createUserResult.status || !createUserResult.data) {
             return {
                 status: false,
