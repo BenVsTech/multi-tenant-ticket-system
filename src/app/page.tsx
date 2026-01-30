@@ -91,7 +91,7 @@ export default function Home() {
 
   if(selectedAccount === "new") {
     return (
-      <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-center']} ${styles['secondary-background']}`}>
+      <div className={`${styles['width-100']} ${styles['height-fill']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-center']} ${styles['secondary-background']} ${styles['scrollable']}`}>
         <div className={`${styles['max-width-400']} ${styles['pd-all-round']} ${styles['primary-background']}`}>
           <Form 
             setup={{ 
@@ -171,7 +171,7 @@ export default function Home() {
 
       </ul>
 
-      <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-center']} ${styles['align-center']} ${styles['secondary-background']}`}>
+      <div className={`${styles['width-100']} ${styles['flex-1']} ${styles['column-container']} ${styles['content-center']} ${styles['align-center']} ${styles['secondary-background']}`}>
         <div className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['row-container']} ${styles['content-space-between']} ${styles['align-center']} ${styles['primary-background']}`}>
           <div className={`${styles['width-100']} ${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['gap-10']}`}>
             <button 
@@ -194,7 +194,7 @@ export default function Home() {
             onClick={() => setShowSettings(true)} 
           />
         </div>
-        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']}`}>
+        <div className={`${styles['width-100']} ${styles['flex-1']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['scrollable']}`}>
           <RenderSection 
             setup={{ 
               accountId: Number(selectedAccount), 
