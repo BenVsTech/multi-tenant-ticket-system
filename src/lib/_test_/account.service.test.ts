@@ -137,6 +137,7 @@ describe('Account Service', () => {
             const description = 'Test Description';
             const mockAccountId = 10;
             const mockOwnerRoleId = 1;
+            const mockTeamId = 30;
 
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
                 status: true,
@@ -144,11 +145,22 @@ describe('Account Service', () => {
                 message: 'Connected to database'
             });
 
-            (dynamicSendData as jest.Mock).mockResolvedValueOnce({
-                status: true,
-                data: mockAccountId,
-                message: 'Account created'
-            });
+            (dynamicSendData as jest.Mock)
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockAccountId,
+                    message: 'Account created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockTeamId,
+                    message: 'Team created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: 20,
+                    message: 'User account created'
+                });
 
             (getRowsByColumnValue as jest.Mock).mockResolvedValueOnce({
                 status: true,
@@ -156,18 +168,12 @@ describe('Account Service', () => {
                 message: 'Role found'
             });
 
-            (dynamicSendData as jest.Mock).mockResolvedValueOnce({
-                status: true,
-                data: 20,
-                message: 'User account created'
-            });
-
             const result = await createAccount(userId, name, description);
 
             expect(result.status).toBe(true);
             expect(result.data).toBe(true);
             expect(result.message).toBe('Account created successfully');
-            expect(dynamicSendData).toHaveBeenCalledTimes(2);
+            expect(dynamicSendData).toHaveBeenCalledTimes(3);
             expect(dynamicSendData).toHaveBeenNthCalledWith(
                 1,
                 mockDbClient,
@@ -178,9 +184,16 @@ describe('Account Service', () => {
             expect(dynamicSendData).toHaveBeenNthCalledWith(
                 2,
                 mockDbClient,
+                'team',
+                ['name', 'description', 'account_id'],
+                ['administration', 'Default administration team for account management', mockAccountId]
+            );
+            expect(dynamicSendData).toHaveBeenNthCalledWith(
+                3,
+                mockDbClient,
                 'user_account',
-                ['user_id', 'account_id', 'role_id'],
-                [userId, mockAccountId, mockOwnerRoleId]
+                ['user_id', 'account_id', 'role_id', 'team_id'],
+                [userId, mockAccountId, mockOwnerRoleId, mockTeamId]
             );
             expect(getRowsByColumnValue).toHaveBeenCalledWith(mockDbClient, 'role', 'name', 'owner');
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
@@ -231,7 +244,7 @@ describe('Account Service', () => {
             expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
         });
 
-        it('should return error when owner role not found', async () => {
+        it('should return error when creating team fails', async () => {
             const userId = 1;
             const name = 'Test Account';
             const description = 'Test Description';
@@ -243,11 +256,50 @@ describe('Account Service', () => {
                 message: 'Connected to database'
             });
 
-            (dynamicSendData as jest.Mock).mockResolvedValueOnce({
+            (dynamicSendData as jest.Mock)
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockAccountId,
+                    message: 'Account created'
+                })
+                .mockResolvedValueOnce({
+                    status: false,
+                    data: null,
+                    message: 'Failed to create team'
+                });
+
+            const result = await createAccount(userId, name, description);
+
+            expect(result.status).toBe(false);
+            expect(result.data).toBe(null);
+            expect(result.message).toBe('Failed to create team');
+            expect(handleCloseDatabaseConnections).toHaveBeenCalledWith(null, mockDbClient);
+        });
+
+        it('should return error when owner role not found', async () => {
+            const userId = 1;
+            const name = 'Test Account';
+            const description = 'Test Description';
+            const mockAccountId = 10;
+            const mockTeamId = 30;
+
+            (connectToDatabase as jest.Mock).mockResolvedValueOnce({
                 status: true,
-                data: mockAccountId,
-                message: 'Account created'
+                data: mockDbClient,
+                message: 'Connected to database'
             });
+
+            (dynamicSendData as jest.Mock)
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockAccountId,
+                    message: 'Account created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockTeamId,
+                    message: 'Team created'
+                });
 
             (getRowsByColumnValue as jest.Mock).mockResolvedValueOnce({
                 status: false,
@@ -269,6 +321,7 @@ describe('Account Service', () => {
             const description = 'Test Description';
             const mockAccountId = 10;
             const mockOwnerRoleId = 1;
+            const mockTeamId = 30;
 
             (connectToDatabase as jest.Mock).mockResolvedValueOnce({
                 status: true,
@@ -281,6 +334,11 @@ describe('Account Service', () => {
                     status: true,
                     data: mockAccountId,
                     message: 'Account created'
+                })
+                .mockResolvedValueOnce({
+                    status: true,
+                    data: mockTeamId,
+                    message: 'Team created'
                 })
                 .mockResolvedValueOnce({
                     status: false,
