@@ -12,6 +12,7 @@ import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
 import { teamForm } from "@/utils/form/team";
+import { ticketForm } from "@/utils/form/ticket";
 import { ReportProblemFormData } from "@/types/component";
 
 // Exports
@@ -77,7 +78,37 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 );
                 break;
             case "tickets":
-                setContent(<div>This is the tickets section where you can view the tickets and their details</div>);
+                if(!setup.accountId) {
+                    setContent(
+                        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
+                            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
+                            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
+                        </div>
+                    );
+                    break;
+                }
+
+                setContent(
+                    <DataManagement 
+                        setup={{ 
+                            accountId: setup.accountId,
+                            title: 'Manage Tickets', 
+                            description: 'This is the manage tickets section where you can view the tickets and their details', 
+                            createText: 'Create Ticket', 
+                            deleteStatus: true, 
+                            form: ticketForm, 
+                            headers: ['ID', 'Title', 'Description', 'Status', 'Created By', 'Assigned To', 'Last Updated', 'Created On'], 
+                            api: '/api/tickets',
+                            accessStatus: true,
+                            access: {
+                                view: setup.permissions.includes('ticket.view'),
+                                create: setup.permissions.includes('ticket.create'),
+                                update: setup.permissions.includes('ticket.update'),
+                                delete: setup.permissions.includes('ticket.delete')
+                            }
+                        }} 
+                    />
+                );
                 break;
             case "comments":
                 setContent(<div>This is the comments section where you can view the comments and their details</div>);

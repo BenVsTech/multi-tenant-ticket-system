@@ -98,8 +98,9 @@ export default function Form({ setup, onClose, onSubmit }: FormProps) {
                 
                 const isTeamsApi = setup.api && setup.api.startsWith('/api/teams/') && setup.api !== '/api/teams';
                 const isUsersApi = setup.api && setup.api.startsWith('/api/users/') && setup.api !== '/api/users';
+                const isTicketsApi = setup.api && setup.api.startsWith('/api/tickets/') && setup.api !== '/api/tickets';
                 
-                if(setup.accountId && (isTeamsApi || isUsersApi)) {
+                if(setup.accountId && (isTeamsApi || isUsersApi || isTicketsApi)) {
                     try {
                         const url = new URL(setup.api, window.location.origin);
                         url.searchParams.set('accountId', setup.accountId.toString());

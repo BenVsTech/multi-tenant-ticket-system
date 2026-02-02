@@ -10,6 +10,87 @@ import { UserAccountRow } from "@/types/component";
 
 // Exports
 
+export async function getUsersForOptions(userId: number, accountId: number): Promise<DataReturnObject<{id: number, name: string}[]>> {
+
+    let dbClient: DatabaseClient | null = null;
+
+    try{
+
+        const databaseConnection = await connectToDatabase(false);
+        if(!databaseConnection.status || !databaseConnection.data) {
+            return {
+                status: false,
+                data: null,
+                message: databaseConnection.message
+            };
+        }
+        
+        dbClient = databaseConnection.data;
+
+        const accessCheck = await verifyAccountAccess(dbClient, userId, accountId);
+        if (!accessCheck.status || !accessCheck.data) {
+            return {
+                status: false,
+                data: null,
+                message: 'You do not have access to this account'
+            };
+        }
+
+        const userAccountsQuery = await dbClient.query(
+            `SELECT * FROM user_account WHERE account_id = $1 ORDER BY created_at DESC`,
+            [accountId]
+        );
+        
+        const userAccounts = userAccountsQuery.rows || [];
+
+        if(userAccounts.length === 0) {
+            return {
+                status: true,
+                data: [],
+                message: 'No users found for this account'
+            };
+        }
+
+        const usersResult = await Promise.all(userAccounts.map(async (userAccount: UserAccountRow) => {
+            const userResult = await getRowById(dbClient!, 'users', userAccount.user_id);
+            if(!userResult.status || !userResult.data) {
+                return null;
+            }
+
+            return {
+                id: userAccount.user_id,
+                name: userResult.data.name
+            };
+        }));
+
+        if(usersResult.some((user) => user === null)) {
+            return {
+                status: false,
+                data: null,
+                message: 'Failed to retrieve some user information'
+            };
+        }
+
+        const users = usersResult.filter((user) => user !== null) as {id: number, name: string}[];
+
+        return {
+            status: true,
+            data: users,
+            message: 'Users retrieved successfully'
+        };
+
+    } catch(error: unknown) {
+        logger.error('getUsersForOptions', error);
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    } finally {
+        await handleCloseDatabaseConnections(null, dbClient);
+    }
+}
+
 export async function getAllUsers(userId: number, accountId: number): Promise<DataReturnObject<string[][]>> {
 
     let dbClient: DatabaseClient | null = null;
