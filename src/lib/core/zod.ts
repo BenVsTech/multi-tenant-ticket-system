@@ -127,3 +127,22 @@ export const teamIdParamSchema = z.object({
     id: z.coerce.number().int().positive('Team ID must be a positive integer'),
 });
 
+export const createTicketSchema = z.object({
+    title: z.string().min(1, 'Title is required').max(255),
+    description: z.string().min(1, 'Description is required').max(512),
+    status: z.string().min(1, 'Status is required'),
+    assigned_to_user_id: z.coerce.number().int().positive('Assigned user ID must be a positive integer').nullable().optional(),
+    accountId: z.coerce.number().int().positive('Account ID must be a positive integer'),
+});
+
+export const updateTicketSchema = z.object({
+    title: z.string().min(1, 'Title must be at least 1 character').max(255),
+    description: z.string().min(1, 'Description must be at least 1 character').max(512),
+    status: z.string().min(1, 'Status must be at least 1 character'),
+    assigned_to_user_id: z.coerce.number().int().positive('Assigned user ID must be a positive integer').nullable(),
+}).partial();
+
+export const ticketIdParamSchema = z.object({
+    id: z.coerce.number().int().positive('Ticket ID must be a positive integer'),
+});
+
