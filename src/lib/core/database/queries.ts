@@ -892,6 +892,32 @@ export async function deleteRowById(client: DatabaseClient, table: string, id: n
     }
 }
 
+export async function deleteCommentsByTicketId(client: DatabaseClient, accountId: number, ticketId: number): Promise<DataReturnObject<boolean>> {
+    try {
+        const tableValidationError = validateIdentifierOrError<boolean>('comment', 'table');
+        if (tableValidationError) return tableValidationError;
+
+        const escapedTableName = escapeIdentifier('comment');
+        const queryString = `DELETE FROM ${escapedTableName} WHERE ticket_id = $1 AND account_id = $2`;
+
+        const result = await client.query(queryString, [ticketId, accountId]);
+
+        return {
+            status: true,
+            data: result.rowCount !== null && result.rowCount > 0,
+            message: `Comments for ticket ${ticketId} deleted successfully`
+        };
+
+    } catch(error: unknown) {
+        logger.error('deleteCommentsByTicketId', error, { ticketId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
 export async function getStringRowsAccounts(client: DatabaseClient, userId: number): Promise<DataReturnObject<string[][]>> {
     try{
 

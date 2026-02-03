@@ -194,6 +194,10 @@
     text-align: right;
 }
 
+.rounded {
+    border-radius: 10px;
+}
+
 /* Popup */
 
 .popup {

@@ -5,6 +5,7 @@ import { getAllRowsFromTable, getRowById, deleteRowById, dynamicSendData, update
 import { handleCloseDatabaseConnections, logger, formatDate } from "@/lib/core/helper";
 import { verifyAccountAccess } from "@/lib/core/validation";
 import { DataReturnObject } from "@/types/helper";
+import { deleteCommentsByTicketId } from "./comment.service";
 
 // Exports
 
@@ -482,6 +483,11 @@ export async function deleteTicket(userId: number, accountId: number, ticketId: 
                 data: null,
                 message: 'Ticket not found'
             };
+        }
+
+        const deleteCommentsResult = await deleteCommentsByTicketId(dbClient, accountId, ticketId);
+        if(!deleteCommentsResult.status) {
+            logger.error('deleteTicket - Failed to delete comments', { ticketId, accountId });
         }
 
         const deleteResult = await deleteRowById(dbClient, 'ticket', ticketId, accountId);

@@ -206,3 +206,9 @@ export interface UpdateAccountData {
     [key: string]: string | number | boolean | null | undefined;
 }
 
+export interface CommentProps {
+    setup: {
+        accountId: number;
+    }
+}
+

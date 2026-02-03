@@ -8,6 +8,7 @@ import Form from "@/components/form";
 import DataManagement from "@/components/dataManagement";
 import DeleteMyData from "./deleteMyData";
 import ErrorPopup from "./errorPopup";
+import Comment from "@/components/comment";
 import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
@@ -111,7 +112,17 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 );
                 break;
             case "comments":
-                setContent(<div>This is the comments section where you can view the comments and their details</div>);
+                if(!setup.accountId) {
+                    setContent(
+                        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
+                            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
+                            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
+                        </div>
+                    );
+                    break;
+                }
+
+                setContent(<Comment setup={{ accountId: setup.accountId }} />);
                 break;
             case "user-management":
                 if(!setup.accountId) {
