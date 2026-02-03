@@ -1,7 +1,7 @@
 // Imports
 
 import { connectToDatabase, DatabaseClient } from "@/lib/core/database";
-import { getRowById, dynamicSendData } from "@/lib/core/database/queries";
+import { getRowById, dynamicSendData, deleteCommentsByTicketId as deleteCommentsByTicketIdQuery } from "@/lib/core/database/queries";
 import { handleCloseDatabaseConnections, logger } from "@/lib/core/helper";
 import { verifyAccountAccess } from "@/lib/core/validation";
 import { DataReturnObject } from "@/types/helper";
@@ -156,5 +156,9 @@ export async function createComment(userId: number, accountId: number, ticketId:
     } finally {
         await handleCloseDatabaseConnections(null, dbClient);
     }
+}
+
+export async function deleteCommentsByTicketId(dbClient: DatabaseClient, accountId: number, ticketId: number): Promise<DataReturnObject<boolean>> {
+    return deleteCommentsByTicketIdQuery(dbClient, accountId, ticketId);
 }
 
