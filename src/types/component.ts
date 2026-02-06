@@ -1,6 +1,7 @@
 // Exports
 
 export interface sections {
+    performance: boolean;
     management: boolean;
     admin: boolean;
     system: boolean;
@@ -209,6 +210,27 @@ export interface UpdateAccountData {
 export interface CommentProps {
     setup: {
         accountId: number;
+    }
+}
+
+export type PieSlice = {
+    id: string
+    label: string
+    value: number
+    fill: string
+}
+
+export interface PieChartProps {
+    setup: {
+        data: PieSlice[];
+        clickable: boolean;
+    }
+    onClick: (reference: string) => void;
+}
+
+export interface AnalyticsProps {
+    setup: {
+        accountId: number | null;
     }
 }
 

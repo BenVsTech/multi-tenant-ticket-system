@@ -37,3 +37,6 @@ export const sensitiveFieldPatterns = [
     /uri/i,
     /url/i,
 ];
+
+export const statusOptions = ['Unassigned', 'On Hold', 'Blocked', 'Cancelled', 'In Progress', 'Completed', 'Archived', 'Total'];
+
