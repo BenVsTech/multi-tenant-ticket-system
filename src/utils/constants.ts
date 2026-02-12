@@ -6,6 +6,7 @@ export const databaseConstants = {
     primaryKey: 'SERIAL PRIMARY KEY',
     varchar: (length: number) => `VARCHAR(${length})`,
     integer: 'INTEGER NOT NULL',
+    integerNullable: 'INTEGER',
     interval: 'INTERVAL',
     date: 'DATE',
     decimal: (precision: number, scale: number) => `DECIMAL(${precision}, ${scale})`,

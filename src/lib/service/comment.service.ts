@@ -1,7 +1,7 @@
 // Imports
 
 import { connectToDatabase, DatabaseClient } from "@/lib/core/database";
-import { getRowById, dynamicSendData, deleteCommentsByTicketId as deleteCommentsByTicketIdQuery } from "@/lib/core/database/queries";
+import { getRowById, dynamicSendData, getCommentsByTicketAndAccount, deleteCommentsByTicketId as deleteCommentsByTicketIdQuery } from "@/lib/core/database/queries";
 import { handleCloseDatabaseConnections, logger } from "@/lib/core/helper";
 import { verifyAccountAccess } from "@/lib/core/validation";
 import { DataReturnObject } from "@/types/helper";
@@ -34,12 +34,16 @@ export async function getCommentsByTicketId(userId: number, accountId: number, t
             };
         }
 
-        const commentsQuery = await dbClient.query(
-            `SELECT * FROM comment WHERE ticket_id = $1 AND account_id = $2 ORDER BY created_at DESC`,
-            [ticketId, accountId]
-        );
-        
-        const comments = commentsQuery.rows || [];
+        const getCommentsResult = await getCommentsByTicketAndAccount(dbClient, ticketId, accountId);
+        if(!getCommentsResult.status || !getCommentsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: getCommentsResult.message
+            };
+        }
+
+        const comments = getCommentsResult.data;
 
         if(comments.length === 0) {
             return {

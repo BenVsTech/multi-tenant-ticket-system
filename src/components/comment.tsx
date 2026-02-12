@@ -110,7 +110,7 @@ export default function comment({ setup }: CommentProps) {
                 {commentsLoaded && comments.length > 0 && (
                     <div className={`${styles["column-container"]} ${styles["width-100"]} ${styles["content-start"]} ${styles["align-start"]} ${styles["gap-10"]}`}>
                         {comments.map((comment) => (
-                            <div key={comment.id} className={`${styles["row-container"]} ${styles["width-100"]} ${styles["content-space-between"]} ${styles["align-start"]} ${styles["gap-10"]} ${styles["primary-background"]} ${styles["rounded"]} ${styles["pd-all-round"]}`}>
+                            <div key={comment.id} className={`${styles["column-container"]} ${styles["width-100"]} ${styles["content-space-between"]} ${styles["align-start"]} ${styles["gap-10"]} ${styles["primary-background"]} ${styles["rounded"]} ${styles["pd-all-round"]}`}>
                                 <p>{comment.comment}</p>
                                 <p>
                                     <b>

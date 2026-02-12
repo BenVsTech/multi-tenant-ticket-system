@@ -77,7 +77,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             createText: 'Create Team', 
                             deleteStatus: true, 
                             form: teamForm, 
-                            headers: ['ID', 'Name', 'Description', 'Last Updated', 'Created On'], 
+                            headers: ['ID', 'Name', 'Last Updated', 'Created On'], 
                             api: '/api/teams',
                             accessStatus: true,
                             access: {
@@ -105,7 +105,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             createText: 'Create Ticket', 
                             deleteStatus: true, 
                             form: ticketForm, 
-                            headers: ['ID', 'Title', 'Description', 'Status', 'Created By', 'Assigned To', 'Last Updated', 'Created On'], 
+                            headers: ['ID', 'Title', 'Status', 'Created By', 'Assigned To', 'Last Updated', 'Created On'], 
                             api: '/api/tickets',
                             accessStatus: true,
                             access: {
@@ -177,7 +177,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             createText: 'Create Account', 
                             deleteStatus: true, 
                             form: accountForm, 
-                            headers: ['ID', 'Name', 'Description', 'Last Updated', 'Created On'], 
+                            headers: ['ID', 'Name', 'Last Updated', 'Created On'], 
                             api: '/api/accounts',
                             accessStatus: false,
                             access: null

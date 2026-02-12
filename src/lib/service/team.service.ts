@@ -228,7 +228,6 @@ export async function getAllTeams(userId: number, accountId: number): Promise<Da
             return [
                 team.id.toString(),
                 team.name,
-                team.description,
                 await formatDate(team.updated_at),
                 await formatDate(team.created_at)
             ];

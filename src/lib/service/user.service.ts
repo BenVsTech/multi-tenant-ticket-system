@@ -1,12 +1,11 @@
 // Imports
 
 import { connectToDatabase, DatabaseClient } from "@/lib/core/database";
-import { dynamicSendData, getRowsByColumnValue, getRowById, deleteRowById } from "@/lib/core/database/queries";
+import { dynamicSendData, getRowsByColumnValue, getRowById, deleteRowById, getUserAccountsByAccount, userAccountExists, teamExistsInAccount, deleteUserAccountsByUserId } from "@/lib/core/database/queries";
 import { handleCloseDatabaseConnections, logger, generatePassword, formatDate } from "@/lib/core/helper";
 import { verifyAccountAccess } from "@/lib/core/validation";
 import { sendEmailToUser } from "@/lib/service/email.service";
 import { DataReturnObject } from "@/types/helper";
-import { UserAccountRow } from "@/types/component";
 
 // Exports
 
@@ -36,12 +35,16 @@ export async function getUsersForOptions(userId: number, accountId: number): Pro
             };
         }
 
-        const userAccountsQuery = await dbClient.query(
-            `SELECT * FROM user_account WHERE account_id = $1 ORDER BY created_at DESC`,
-            [accountId]
-        );
-        
-        const userAccounts = userAccountsQuery.rows || [];
+        const userAccountsResult = await getUserAccountsByAccount(dbClient, accountId);
+        if(!userAccountsResult.status || !userAccountsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: userAccountsResult.message
+            };
+        }
+
+        const userAccounts = userAccountsResult.data;
 
         if(userAccounts.length === 0) {
             return {
@@ -51,7 +54,7 @@ export async function getUsersForOptions(userId: number, accountId: number): Pro
             };
         }
 
-        const usersResult = await Promise.all(userAccounts.map(async (userAccount: UserAccountRow) => {
+        const usersResult = await Promise.all(userAccounts.map(async (userAccount: any) => {
             const userResult = await getRowById(dbClient!, 'users', userAccount.user_id);
             if(!userResult.status || !userResult.data) {
                 return null;
@@ -117,12 +120,16 @@ export async function getAllUsers(userId: number, accountId: number): Promise<Da
             };
         }
 
-        const userAccountsQuery = await dbClient.query(
-            `SELECT * FROM user_account WHERE account_id = $1 ORDER BY created_at DESC`,
-            [accountId]
-        );
-        
-        const userAccounts = userAccountsQuery.rows || [];
+        const userAccountsResult = await getUserAccountsByAccount(dbClient, accountId);
+        if(!userAccountsResult.status || !userAccountsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: userAccountsResult.message
+            };
+        }
+
+        const userAccounts = userAccountsResult.data;
 
         if(userAccounts.length === 0) {
             return {
@@ -132,7 +139,7 @@ export async function getAllUsers(userId: number, accountId: number): Promise<Da
             };
         }
 
-        const usersResult = await Promise.all(userAccounts.map(async (userAccount: UserAccountRow) => {
+        const usersResult = await Promise.all(userAccounts.map(async (userAccount: any) => {
             const userResult = await getRowById(dbClient!, 'users', userAccount.user_id);
             if(!userResult.status || !userResult.data) {
                 return null;
@@ -223,12 +230,8 @@ export async function createUser(userId: number, accountId: number, name: string
         if(existingUserResult.data && existingUserResult.data.length > 0) {
             targetUserId = existingUserResult.data[0].id;
 
-            const existingUserAccountQuery = await dbClient.query(
-                `SELECT * FROM user_account WHERE user_id = $1 AND account_id = $2`,
-                [targetUserId, accountId]
-            );
-            
-            if(existingUserAccountQuery.rows && existingUserAccountQuery.rows.length > 0) {
+            const existingUserAccountCheck = await userAccountExists(dbClient, targetUserId, accountId);
+            if(existingUserAccountCheck.status && existingUserAccountCheck.data) {
                 return {
                     status: false,
                     data: null,
@@ -273,12 +276,8 @@ export async function createUser(userId: number, accountId: number, name: string
             }
         }
 
-        const teamVerificationResult = await dbClient.query(
-            `SELECT id FROM team WHERE id = $1 AND account_id = $2`,
-            [teamId, accountId]
-        );
-        
-        if(!teamVerificationResult.rows || teamVerificationResult.rows.length === 0) {
+        const teamCheck = await teamExistsInAccount(dbClient, teamId, accountId);
+        if(!teamCheck.status || !teamCheck.data) {
             return {
                 status: false,
                 data: null,
@@ -414,10 +413,14 @@ export async function deleteUserFromSystem(targetUserId: number): Promise<DataRe
             };
         }
 
-        const deleteUserAccountsResult = await dbClient.query(
-            `DELETE FROM user_account WHERE user_id = $1`,
-            [targetUserId]
-        );
+        const deleteUserAccountsResult = await deleteUserAccountsByUserId(dbClient, targetUserId);
+        if(!deleteUserAccountsResult.status) {
+            return {
+                status: false,
+                data: null,
+                message: deleteUserAccountsResult.message ?? 'Failed to delete user accounts'
+            };
+        }
 
         const deleteUserResult = await deleteRowById(dbClient, 'users', targetUserId);
         if(!deleteUserResult.status || !deleteUserResult.data) {

@@ -123,7 +123,9 @@ export async function POST(request: Request): Promise<NextResponse<DataReturnObj
             };
         }
 
-        const { title, description, status, assigned_to_user_id, accountId } = validationResult.data;
+        const { title, description, assigned_to_team_id, accountId } = validationResult.data;
+        const status = 'Unassigned';
+        const assigned_to_user_id = null;
 
         let dbClient: DatabaseClient | null = null;
 
@@ -158,7 +160,7 @@ export async function POST(request: Request): Promise<NextResponse<DataReturnObj
             await handleCloseDatabaseConnections(null, dbClient);
         }
 
-        const createTicketResult = await createTicket(userId, accountId, title, description, status, assigned_to_user_id || null);
+        const createTicketResult = await createTicket(userId, accountId, title, description, status, assigned_to_team_id, assigned_to_user_id);
         if(!createTicketResult.status || !createTicketResult.data) {
             return {
                 status: false,

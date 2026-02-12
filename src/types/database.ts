@@ -36,3 +36,12 @@ export interface TestUser {
     };
 }
 
+export interface UserAccount {
+    user_id: number;
+    account_id: number;
+    role_id: number;
+    team_id: number;
+    created_at: Date | string;
+    updated_at: Date | string;
+}
+

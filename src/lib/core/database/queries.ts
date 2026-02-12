@@ -894,6 +894,132 @@ export async function deleteRowById(client: DatabaseClient, table: string, id: n
     }
 }
 
+export async function teamExistsInAccount(client: DatabaseClient, teamId: number, accountId: number): Promise<DataReturnObject<boolean>> {
+    try {
+        const result = await client.query(
+            `SELECT id FROM team WHERE id = $1 AND account_id = $2`,
+            [teamId, accountId]
+        );
+        return {
+            status: true,
+            data: result.rows.length > 0,
+            message: result.rows.length > 0 ? 'Team exists in account' : 'Team not found in account'
+        };
+    } catch (error: unknown) {
+        logger.error('teamExistsInAccount', error, { teamId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function userAccountExists(client: DatabaseClient, userId: number, accountId: number): Promise<DataReturnObject<boolean>> {
+    try {
+        const result = await client.query(
+            `SELECT id FROM user_account WHERE user_id = $1 AND account_id = $2`,
+            [userId, accountId]
+        );
+        return {
+            status: true,
+            data: result.rows.length > 0,
+            message: result.rows.length > 0 ? 'User account exists' : 'User account not found'
+        };
+    } catch (error: unknown) {
+        logger.error('userAccountExists', error, { userId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getTicketsByAccountOrdered(client: DatabaseClient, accountId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM ticket WHERE account_id = $1 ORDER BY CASE WHEN status = 'In Progress' THEN 0 ELSE 1 END, created_at DESC`,
+            [accountId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Tickets retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getTicketsByAccountOrdered', error, { accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getCommentsByTicketAndAccount(client: DatabaseClient, ticketId: number, accountId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM comment WHERE ticket_id = $1 AND account_id = $2 ORDER BY created_at DESC`,
+            [ticketId, accountId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Comments retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getCommentsByTicketAndAccount', error, { ticketId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getUserAccountsByAccount(client: DatabaseClient, accountId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM user_account WHERE account_id = $1 ORDER BY created_at DESC`,
+            [accountId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'User accounts retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getUserAccountsByAccount', error, { accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function deleteUserAccountsByUserId(client: DatabaseClient, userId: number): Promise<DataReturnObject<boolean>> {
+    try {
+        const result = await client.query(
+            `DELETE FROM user_account WHERE user_id = $1`,
+            [userId]
+        );
+        return {
+            status: true,
+            data: true,
+            message: 'User accounts deleted successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('deleteUserAccountsByUserId', error, { userId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
 export async function deleteCommentsByTicketId(client: DatabaseClient, accountId: number, ticketId: number): Promise<DataReturnObject<boolean>> {
     try {
         const tableValidationError = validateIdentifierOrError<boolean>('comment', 'table');
@@ -951,7 +1077,6 @@ export async function getStringRowsAccounts(client: DatabaseClient, userId: numb
             return [
                 row.account_id.toString(), 
                 accountObject.data.name, 
-                accountObject.data.description, 
                 formatDate(row.updated_at), 
                 formatDate(row.created_at)
             ];
@@ -1030,7 +1155,7 @@ export async function getPerformanceDataByAccount(client: DatabaseClient, accoun
             };
         }
 
-        const tickets = (ticketsResult.data || []) as {id: number, status: string, assigned_to_user_id: number | null}[];
+        const tickets = (ticketsResult.data || []) as {id: number, status: string, assigned_to_team_id: number | null, assigned_to_user_id: number | null}[];
 
         const overallStatusCounts: Record<string, number> = {};
         statusOrder.forEach(status => {
@@ -1071,12 +1196,7 @@ export async function getPerformanceDataByAccount(client: DatabaseClient, accoun
                 .filter(([_, tid]) => tid === teamId)
                 .map(([uid, _]) => uid);
 
-            const teamTickets = tickets.filter(ticket => {
-                if(ticket.assigned_to_user_id === null) {
-                    return false;
-                }
-                return teamUserIds.includes(ticket.assigned_to_user_id);
-            });
+            const teamTickets = tickets.filter(ticket => ticket.assigned_to_team_id === teamId);
 
             const statusCounts: Record<string, number> = {};
             statusOrder.forEach(status => {
@@ -1116,7 +1236,7 @@ export async function getPerformanceDataByAccount(client: DatabaseClient, accoun
             });
         }
 
-        const unassignedTickets = tickets.filter(ticket => ticket.assigned_to_user_id === null);
+        const unassignedTickets = tickets.filter(ticket => ticket.assigned_to_team_id === null);
         if(unassignedTickets.length > 0) {
             const statusCounts: Record<string, number> = {};
             statusOrder.forEach(status => {
