@@ -5,70 +5,85 @@ import { useState, useEffect } from "react";
 import styles from "../app/page.module.css";
 import PieChart from "./pieChart";
 import Table from "./table";
-import { AnalyticsProps, PieSlice } from "@/types/component";
+import { AnalyticsProps, PieSlice, TeamPerformanceData, PerformanceApiData } from "@/types/component";
 import { statusOptions } from "@/utils/constants";
-
-// Sample Data
-
-const teamData = [
-    { id: '1', label: 'team 1', value: 80, fill: '#6B9BD2' },
-    { id: '2', label: 'team 2', value: 63, fill: '#7BC8A4' },
-    { id: '3', label: 'team 3', value: 29, fill: '#B19CD9' },
-    { id: '4', label: 'team 4', value: 15, fill: '#5DB3B3' },
-];
-
-const backlogData = [
-    {
-        reference: '1',
-        data: [
-            {id: '1', label: 'Unassigned', value: 25, fill: '#A8A8D8'},
-            {id: '2', label: 'In Progress', value: 8, fill: '#FFC966'},
-            {id: '3', label: 'On Hold', value: 3, fill: '#FF8A8A'},
-            {id: '4', label: 'Blocked', value: 2, fill: '#C0C0C0'},
-            {id: '5', label: 'Cancelled', value: 12, fill: '#5BA3F5'},
-            {id: '6', label: 'Completed', value: 30, fill: '#6DD4A8'}
-        ]
-    },
-    {
-        reference: '2',
-        data: [
-            {id: '1', label: 'Unassigned', value: 15, fill: '#A8A8D8'},
-            {id: '2', label: 'In Progress', value: 5, fill: '#FFC966'},
-            {id: '3', label: 'On Hold', value: 2, fill: '#FF8A8A'},
-            {id: '4', label: 'Blocked', value: 1, fill: '#C0C0C0'},
-            {id: '5', label: 'Cancelled', value: 18, fill: '#5BA3F5'},
-            {id: '6', label: 'Completed', value: 22, fill: '#6DD4A8'}
-        ]
-    },
-    {
-        reference: '3',
-        data: [
-            {id: '1', label: 'Unassigned', value: 10, fill: '#A8A8D8'},
-            {id: '2', label: 'In Progress', value: 4, fill: '#FFC966'},
-            {id: '3', label: 'On Hold', value: 1, fill: '#FF8A8A'},
-            {id: '4', label: 'Blocked', value: 0, fill: '#C0C0C0'},
-            {id: '5', label: 'Cancelled', value: 6, fill: '#5BA3F5'},
-            {id: '6', label: 'Completed', value: 8, fill: '#6DD4A8'}
-        ]
-    },
-    {
-        reference: '4',
-        data: [
-            {id: '1', label: 'Unassigned', value: 5, fill: '#A8A8D8'},
-            {id: '2', label: 'In Progress', value: 2, fill: '#FFC966'},
-            {id: '3', label: 'On Hold', value: 0, fill: '#FF8A8A'},
-            {id: '4', label: 'Blocked', value: 1, fill: '#C0C0C0'},
-            {id: '5', label: 'Cancelled', value: 3, fill: '#5BA3F5'},
-            {id: '6', label: 'Completed', value: 4, fill: '#6DD4A8'}
-        ]
-    }
-];
 
 // Exports
 
-export default function Performance(setup: AnalyticsProps) {
+export default function Performance({ setup }: AnalyticsProps) {
 
-    const [ticketData, setTicketData] = useState<PieSlice[]>([]);
+    const [teamData, setTeamData] = useState<TeamPerformanceData[]>([]);
+    const [totalsTableData, setTotalsTableData] = useState<string[][]>([]);
+    const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+    const [dataLoaded, setDataLoaded] = useState<boolean>(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const selectedTeam = teamData.find((team) => team.id === selectedTeamId);
+    const ticketData: PieSlice[] = selectedTeam?.data || [];
+
+    useEffect(() => {
+
+        const fetchData = async () => {
+
+            if(!setup.accountId) {
+                return;
+            }
+    
+            try{
+    
+                const response = await fetch(`/api/performance?accountId=${setup.accountId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+    
+                if(!response.ok) {
+                    setErrorMessage('Error fetching performance data');
+                    setDataLoaded(true);
+                    return;
+                }
+    
+                const data = await response.json();
+
+                if(data.status && data.data) {
+                    const performanceData: PerformanceApiData = data.data;
+
+                    setTeamData(performanceData.teams);
+
+                    const totalsRow = statusOptions.map((status) => {
+                        if(status === 'Total') {
+                            const totalTickets = Object.values(performanceData.totals).reduce((sum, count) => sum + count, 0);
+                            return totalTickets.toString();
+                        }
+                        const count = performanceData.totals[status] ?? 0;
+                        return count.toString();
+                    });
+
+                    setTotalsTableData([totalsRow]);
+                } else {
+                    setErrorMessage(data.message || 'Error fetching performance data');
+                }
+    
+            } catch(error) {
+                setErrorMessage('Error fetching performance data');
+            } finally {
+                setDataLoaded(true);
+            }
+
+        }
+
+        fetchData();
+
+    }, [setup.accountId])
+
+    if(!dataLoaded) {
+        return (
+            <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-20']}`}>
+                Loading...
+            </div>
+        )
+    }
 
     return (
         <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-20']}`}>
@@ -80,17 +95,17 @@ export default function Performance(setup: AnalyticsProps) {
 
             <Table setup={{
                 headers: statusOptions,
-                data: [['55', '19', '6', '4', '39', '64', '200', '387']],
+                data: totalsTableData,
                 onClick: () => {},
                 archiveable: false,
                 onArchive: () => {}
             }} />
 
-            <div className={`${styles['width-100']} ${styles['pie-charts-container']}`}>
+            <div className={`${styles['width-100']} ${styles['pie-charts-container']} ${styles['gap-20']}`}>
                 <div className={styles['pie-chart-wrapper']}>
                     <h2 className={`${styles['title-text']} ${styles['text-center']}`}>Team Distribution</h2>
                     <PieChart setup={{ data: teamData, clickable: true }} onClick={(reference) => {
-                        setTicketData(backlogData.find((data) => data.reference === reference)?.data || []);
+                        setSelectedTeamId(reference);
                     }} />
                 </div>
                 <div className={styles['pie-chart-wrapper']}>

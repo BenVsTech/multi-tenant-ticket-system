@@ -233,3 +233,16 @@ export interface AnalyticsProps {
     }
 }
 
+export interface TeamPerformanceData {
+    id: string;
+    label: string;
+    value: number;
+    fill: string;
+    data: PieSlice[];
+}
+
+export interface PerformanceApiData {
+    teams: TeamPerformanceData[];
+    totals: Record<string, number>;
+}
+

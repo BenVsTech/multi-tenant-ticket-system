@@ -7,6 +7,8 @@ import { DatabaseConfiguration, DatabaseTable } from "@/types/database";
 import { validateIdentifierOrError, validateColumnTypeOrError, validateForeignKeyConstraintOrError, validateUniqueConstraintOrError, validateTenantTable, escapeIdentifier } from "../validation";
 import { logger } from "../helper";
 import { UserAccountRow, RolePermissionRow, DatabaseRow, UserRow, AccountRow, RoleRow, PermissionRow } from "@/types/component";
+import { TeamPerformanceData, PieSlice, PerformanceApiData } from "@/types/component";
+import { statusColors, teamColors, statusOrder } from "@/utils/constants";
 
 // Functions
 
@@ -972,6 +974,197 @@ export async function getStringRowsAccounts(client: DatabaseClient, userId: numb
 
     } catch(error: unknown) {
         logger.error('getStringRowsAccounts', error);
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getUserTeamMappings(client: DatabaseClient, accountId: number): Promise<DataReturnObject<{user_id: number, team_id: number | null}[]>> {
+    try{
+        const escapedTableName = escapeIdentifier('user_account');
+        const queryString = `SELECT user_id, team_id FROM ${escapedTableName} WHERE account_id = $1`;
+
+        const result = await client.query(queryString, [accountId]);
+
+        return {
+            status: true,
+            data: result.rows.map((row: any) => ({
+                user_id: row.user_id,
+                team_id: row.team_id
+            })),
+            message: 'User team mappings retrieved successfully'
+        };
+
+    } catch(error: unknown) {
+        logger.error('getUserTeamMappings', error, { accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getPerformanceDataByAccount(client: DatabaseClient, accountId: number): Promise<DataReturnObject<PerformanceApiData>> {
+    try{
+        const teamsResult = await getAllRowsFromTable(client, 'team', accountId);
+        if(!teamsResult.status || !teamsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: teamsResult.message
+            };
+        }
+
+        const teams = teamsResult.data as {id: number, name: string, description: string}[];
+
+        const ticketsResult = await getAllRowsFromTable(client, 'ticket', accountId);
+        if(!ticketsResult.status) {
+            return {
+                status: false,
+                data: null,
+                message: ticketsResult.message
+            };
+        }
+
+        const tickets = (ticketsResult.data || []) as {id: number, status: string, assigned_to_user_id: number | null}[];
+
+        const overallStatusCounts: Record<string, number> = {};
+        statusOrder.forEach(status => {
+            overallStatusCounts[status] = 0;
+        });
+
+        tickets.forEach(ticket => {
+            const status = ticket.status || 'Unassigned';
+            overallStatusCounts[status] = (overallStatusCounts[status] || 0) + 1;
+        });
+
+        const userTeamMappingsResult = await getUserTeamMappings(client, accountId);
+        if(!userTeamMappingsResult.status || !userTeamMappingsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: userTeamMappingsResult.message
+            };
+        }
+
+        const userAccountRows = userTeamMappingsResult.data;
+        
+        const userToTeamMap = new Map<number, number>();
+        userAccountRows.forEach((row) => {
+            if(row.team_id) {
+                userToTeamMap.set(row.user_id, row.team_id);
+            }
+        });
+
+        const teamPerformanceData: TeamPerformanceData[] = [];
+
+        for(let i = 0; i < teams.length; i++) {
+            const team = teams[i];
+            const teamId = team.id;
+            const teamColor = teamColors[i % teamColors.length];
+
+            const teamUserIds = Array.from(userToTeamMap.entries())
+                .filter(([_, tid]) => tid === teamId)
+                .map(([uid, _]) => uid);
+
+            const teamTickets = tickets.filter(ticket => {
+                if(ticket.assigned_to_user_id === null) {
+                    return false;
+                }
+                return teamUserIds.includes(ticket.assigned_to_user_id);
+            });
+
+            const statusCounts: Record<string, number> = {};
+            statusOrder.forEach(status => {
+                statusCounts[status] = 0;
+            });
+
+            teamTickets.forEach(ticket => {
+                const status = ticket.status || 'Unassigned';
+                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            });
+
+            const statusesForChart = Array.from(
+                new Set([
+                    ...statusOrder,
+                    ...Object.keys(statusCounts)
+                ])
+            ).filter(status => status !== 'Archived');
+
+            let statusIdCounter = 1;
+            const ticketData: PieSlice[] = statusesForChart
+                .filter(status => (statusCounts[status] || 0) > 0)
+                .map((status) => ({
+                    id: (statusIdCounter++).toString(),
+                    label: status,
+                    value: statusCounts[status] || 0,
+                    fill: statusColors[status] || '#CCCCCC'
+                }));
+
+            const totalTickets = teamTickets.length;
+
+            teamPerformanceData.push({
+                id: teamId.toString(),
+                label: team.name,
+                value: totalTickets,
+                fill: teamColor,
+                data: ticketData
+            });
+        }
+
+        const unassignedTickets = tickets.filter(ticket => ticket.assigned_to_user_id === null);
+        if(unassignedTickets.length > 0) {
+            const statusCounts: Record<string, number> = {};
+            statusOrder.forEach(status => {
+                statusCounts[status] = 0;
+            });
+
+            unassignedTickets.forEach(ticket => {
+                const status = ticket.status || 'Unassigned';
+                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            });
+
+            const unassignedStatusesForChart = Array.from(
+                new Set([
+                    ...statusOrder,
+                    ...Object.keys(statusCounts)
+                ])
+            ).filter(status => status !== 'Archived');
+
+            let unassignedStatusIdCounter = 1;
+            const ticketData: PieSlice[] = unassignedStatusesForChart
+                .filter(status => (statusCounts[status] || 0) > 0)
+                .map((status) => ({
+                    id: (unassignedStatusIdCounter++).toString(),
+                    label: status,
+                    value: statusCounts[status] || 0,
+                    fill: statusColors[status] || '#CCCCCC'
+                }));
+
+            teamPerformanceData.push({
+                id: 'unassigned',
+                label: 'Unassigned',
+                value: unassignedTickets.length,
+                fill: '#E0E0E0',
+                data: ticketData
+            });
+        }
+
+        return {
+            status: true,
+            data: {
+                teams: teamPerformanceData,
+                totals: overallStatusCounts
+            },
+            message: 'Performance data retrieved successfully'
+        };
+
+    } catch(error: unknown) {
+        logger.error('getPerformanceDataByAccount', error, { accountId });
         return {
             status: false,
             data: null,
