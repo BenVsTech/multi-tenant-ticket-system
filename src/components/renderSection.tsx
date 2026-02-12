@@ -9,8 +9,7 @@ import DataManagement from "@/components/dataManagement";
 import DeleteMyData from "./deleteMyData";
 import ErrorPopup from "./errorPopup";
 import Comment from "@/components/comment";
-import OverallPerformance from "./overallPerformance";
-import TeamPerformance from "./teamPerformance";
+import Performance from "./performance";
 import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
@@ -55,21 +54,13 @@ export default function RenderSection({ setup }: RenderSectionProps) {
             case "my-tickets":
                 setContent(<div>This is the my tickets section where you can view your tickets</div>);
                 break;
-            case "overall-performance":
+            case "performance":
                 if(!setup.accountId) {
                     setContent(notAuthorized());
                     break;
                 }
 
-                setContent(<OverallPerformance setup={{ accountId: setup.accountId }} />);
-                break;
-            case "team-performance":
-                if(!setup.accountId) {
-                    setContent(notAuthorized());
-                    break;
-                }
-
-                setContent(<TeamPerformance setup={{ accountId: setup.accountId }} />);
+                setContent(<Performance setup={{ accountId: setup.accountId }} />);
                 break;
             case "teams":
                 if(!setup.accountId) {

@@ -1,7 +1,6 @@
 // Exports
 
 export interface sections {
-    performance: boolean;
     management: boolean;
     admin: boolean;
     system: boolean;

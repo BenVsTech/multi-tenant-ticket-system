@@ -66,7 +66,7 @@ const backlogData = [
 
 // Exports
 
-export default function OverallPerformance(setup: AnalyticsProps) {
+export default function Performance(setup: AnalyticsProps) {
 
     const [ticketData, setTicketData] = useState<PieSlice[]>([]);
 

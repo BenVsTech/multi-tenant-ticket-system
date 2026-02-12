@@ -22,7 +22,7 @@ export default function Home() {
   const [selectedContent, setSelectedContent] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [openSections, setOpenSections] = useState<sections>({performance: false, management: false, admin: false, system: false});
+  const [openSections, setOpenSections] = useState<sections>({management: false, admin: false, system: false});
   const [permissions, setPermissions] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -139,14 +139,7 @@ export default function Home() {
         <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'home' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('home'); }}>Home</li>
         <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('ticket.view') && handleMenuClick('my-tickets'); }}>My Tickets</li>
 
-        <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={(e) => { e.stopPropagation(); permissions.includes('performance.view') && handleSectionToggle('performance'); }}>Performance</li>
-
-        {openSections.performance && (
-          <ul className={`${styles['width-100']} ${styles['pd-all-round']} ${styles['column-container']} ${styles['content-start']} ${styles['align-stretch']} ${styles['tertiary-background']}`}>
-            <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'overall-performance' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('performance.view') && handleMenuClick('overall-performance'); }}>Overall Performance</li>
-            <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'team-performance' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('performance.view') && handleMenuClick('team-performance'); }}>Team Performance</li>
-          </ul>
-        )}
+        <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'performance' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('performance.view') && handleMenuClick('performance'); }}>Performance</li>
 
         <li className={`${styles['pd-all-round']} ${permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={(e) => { e.stopPropagation(); (permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view')) && handleSectionToggle('management'); }}>Management</li>
 
