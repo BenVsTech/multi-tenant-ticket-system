@@ -246,3 +246,9 @@ export interface PerformanceApiData {
     totals: Record<string, number>;
 }
 
+export interface MyTicketProps {
+    setup: {
+        accountId: number | null;
+    }
+}
+

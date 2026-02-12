@@ -10,6 +10,7 @@ import DeleteMyData from "./deleteMyData";
 import ErrorPopup from "./errorPopup";
 import Comment from "@/components/comment";
 import Performance from "./performance";
+import MyTicket from "./myTicket";
 import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
@@ -52,7 +53,12 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 );
                 break;
             case "my-tickets":
-                setContent(<div>This is the my tickets section where you can view your tickets</div>);
+                if(!setup.accountId) {
+                    setContent(notAuthorized());
+                    break;
+                }
+
+                setContent(<MyTicket setup={{ accountId: setup.accountId }} />);
                 break;
             case "performance":
                 if(!setup.accountId) {

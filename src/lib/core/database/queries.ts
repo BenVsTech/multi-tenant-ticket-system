@@ -957,6 +957,91 @@ export async function getTicketsByAccountOrdered(client: DatabaseClient, account
     }
 }
 
+export async function getTeamIdForUserInAccount(client: DatabaseClient, userId: number, accountId: number): Promise<DataReturnObject<number | null>> {
+    try {
+        const result = await client.query(
+            `SELECT team_id FROM user_account WHERE user_id = $1 AND account_id = $2`,
+            [userId, accountId]
+        );
+        const teamId = result.rows[0]?.team_id ?? null;
+        return {
+            status: true,
+            data: teamId,
+            message: 'User team retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getTeamIdForUserInAccount', error, { userId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getOpenTicketsForTeam(client: DatabaseClient, accountId: number, teamId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM ticket WHERE account_id = $1 AND assigned_to_team_id = $2 AND status = 'Unassigned' ORDER BY created_at DESC`,
+            [accountId, teamId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Open tickets retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getOpenTicketsForTeam', error, { accountId, teamId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getTicketsCreatedByUser(client: DatabaseClient, accountId: number, userId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM ticket WHERE account_id = $1 AND created_by_user_id = $2 ORDER BY created_at DESC`,
+            [accountId, userId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Created tickets retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getTicketsCreatedByUser', error, { accountId, userId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getTicketsAssignedToUser(client: DatabaseClient, accountId: number, userId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM ticket WHERE account_id = $1 AND assigned_to_user_id = $2 ORDER BY created_at DESC`,
+            [accountId, userId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Assigned tickets retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getTicketsAssignedToUser', error, { accountId, userId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
 export async function getCommentsByTicketAndAccount(client: DatabaseClient, ticketId: number, accountId: number): Promise<DataReturnObject<DatabaseRow[]>> {
     try {
         const result = await client.query(

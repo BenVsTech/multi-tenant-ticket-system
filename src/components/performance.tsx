@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import styles from "../app/page.module.css";
 import PieChart from "./pieChart";
 import Table from "./table";
+import ErrorPopup from "./errorPopup";
 import { AnalyticsProps, PieSlice, TeamPerformanceData, PerformanceApiData } from "@/types/component";
 import { statusOptions } from "@/utils/constants";
 
@@ -81,6 +82,12 @@ export default function Performance({ setup }: AnalyticsProps) {
         return (
             <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-20']}`}>
                 Loading...
+                {errorMessage && (
+                    <ErrorPopup
+                        message={errorMessage}
+                        onClose={() => setErrorMessage(null)}
+                    />
+                )}
             </div>
         )
     }
@@ -113,6 +120,13 @@ export default function Performance({ setup }: AnalyticsProps) {
                     <PieChart setup={{ data: ticketData, clickable: false }} onClick={() => {}} />
                 </div>
             </div>
+
+            {errorMessage && (
+                <ErrorPopup
+                    message={errorMessage}
+                    onClose={() => setErrorMessage(null)}
+                />
+            )}
 
         </div>
     )
