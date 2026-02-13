@@ -40,7 +40,7 @@ export default function PieChart({ setup, onClick }: PieChartProps) {
   const cursorStyle = setup.clickable ? { cursor: 'pointer' } : {}
   
   return (
-    <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={250}>
       <RechartsPieChart style={cursorStyle}>
         <Pie
           data={setup.data}

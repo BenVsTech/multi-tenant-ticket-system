@@ -96,8 +96,8 @@ export default function Performance({ setup }: AnalyticsProps) {
         <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-20']}`}>
 
             <div className={`${styles['width-100']} ${styles['column-container']} ${styles['content-center']} ${styles['align-center']} ${styles['gap-10']}`}>
-                <h1 className={`${styles['title-text']} ${styles['text-center']}`}>Overall Performance Dashboard</h1>
-                <p className={`${styles['text-center']}`}>This is the overall performance dashboard where you can view the performance of the system</p>
+                <h1 className={`${styles['title-text']} ${styles['text-center']}`}>Performance Dashboard</h1>
+                <p className={`${styles['text-center']}`}>This is the performance dashboard where you can view the performance of the system</p>
             </div>
 
             <Table setup={{
