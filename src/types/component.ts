@@ -212,3 +212,43 @@ export interface CommentProps {
     }
 }
 
+export type PieSlice = {
+    id: string
+    label: string
+    value: number
+    fill: string
+}
+
+export interface PieChartProps {
+    setup: {
+        data: PieSlice[];
+        clickable: boolean;
+    }
+    onClick: (reference: string) => void;
+}
+
+export interface AnalyticsProps {
+    setup: {
+        accountId: number | null;
+    }
+}
+
+export interface TeamPerformanceData {
+    id: string;
+    label: string;
+    value: number;
+    fill: string;
+    data: PieSlice[];
+}
+
+export interface PerformanceApiData {
+    teams: TeamPerformanceData[];
+    totals: Record<string, number>;
+}
+
+export interface MyTicketProps {
+    setup: {
+        accountId: number | null;
+    }
+}
+

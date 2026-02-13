@@ -6,12 +6,12 @@ import { FormElements } from "@/types/component";
 
 export const ticketForm: FormElements = {
     title: 'Create New Ticket',
-    description: 'Here you can create a new ticket',
+    description: 'Here you can create a new ticket. New tickets start as Unassigned and can be picked up by anyone in the selected team.',
     apiOptionsStatus: true,
     apiOptions: [
         {
-            api: '/api/users/options',
-            ref: 'users'
+            api: '/api/teams/options',
+            ref: 'teams'
         }
     ],
     elements: [
@@ -29,8 +29,8 @@ export const ticketForm: FormElements = {
             options: []
         },
         {
-            tag: 'input',
-            type: 'text',
+            tag: 'textarea',
+            type: 'textarea',
             label: 'Ticket Description',
             instructions: 'Enter the description of the ticket',
             id: 'description',
@@ -44,33 +44,14 @@ export const ticketForm: FormElements = {
         {
             tag: 'select',
             type: 'select',
-            label: 'Ticket Status',
-            instructions: 'Select the status of the ticket',
-            id: 'status',
-            name: 'status',
-            placeholder: 'Select the status of the ticket',
-            required: true,
-            optionApiStatus: false,
-            optionApiRef: null,
-            options: [
-                { value: 'Backlog', label: 'backlog' },
-                { value: 'On Hold', label: 'on hold' },
-                { value: 'Blocked', label: 'blocked' },
-                { value: 'In Progress', label: 'in progress' },
-                { value: 'Completed', label: 'completed' },
-            ]
-        },
-        {
-            tag: 'select',
-            type: 'select',
-            label: 'Assigned to',
-            instructions: 'Select the user to assign the ticket to',
-            id: 'assigned_to_user_id',
-            name: 'assigned_to_user_id',
-            placeholder: 'Select the user to assign the ticket to',
+            label: 'Assigned to Team',
+            instructions: 'Select the team to assign the ticket to',
+            id: 'assigned_to_team_id',
+            name: 'assigned_to_team_id',
+            placeholder: 'Select the team to assign the ticket to',
             required: true,
             optionApiStatus: true,
-            optionApiRef: 'users',
+            optionApiRef: 'teams',
             options: []
         },
     ]

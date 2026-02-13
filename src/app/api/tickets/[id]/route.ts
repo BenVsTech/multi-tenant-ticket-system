@@ -13,8 +13,8 @@ import { getRowById } from "@/lib/core/database/queries";
 
 // Exports
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse<DataReturnObject<{title: string, description: string, status: string, assigned_to_user_id: number | null}>>> {
-    return apiHandler<{title: string, description: string, status: string, assigned_to_user_id: number | null}>(async () => {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse<DataReturnObject<{title: string, description: string, status: string, assigned_to_team_id: number, assigned_to_user_id: number | null}>>> {
+    return apiHandler<{title: string, description: string, status: string, assigned_to_team_id: number, assigned_to_user_id: number | null}>(async () => {
 
         const session = await getServerSession(authOptions);
         if(!session?.user?.id) {
@@ -147,7 +147,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             };
         }
 
-        const { title, description, status, assigned_to_user_id } = validationResult.data;
+        const { title, description, status, assigned_to_team_id, assigned_to_user_id } = validationResult.data;
 
         const { searchParams } = new URL(request.url);
         const accountIdParam = searchParams.get('accountId');
@@ -210,7 +210,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             await handleCloseDatabaseConnections(null, dbClient);
         }
 
-        const updateTicketResult = await updateTicket(userId, accountId!, ticketId, title, description, status, assigned_to_user_id);
+        const updateTicketResult = await updateTicket(userId, accountId!, ticketId, title, description, status, assigned_to_team_id, assigned_to_user_id);
         if(!updateTicketResult.status || !updateTicketResult.data) {
             return {
                 status: false,

@@ -1,7 +1,7 @@
 // Imports
 
 import { connectToDatabase, DatabaseClient } from "@/lib/core/database";
-import { getAllRowsFromTable, getRowById, deleteRowById, dynamicSendData, updateRowById } from "@/lib/core/database/queries";
+import { getAllRowsFromTable, getRowById, deleteRowById, dynamicSendData, updateRowById, teamExistsInAccount, userAccountExists, getTicketsByAccountOrdered } from "@/lib/core/database/queries";
 import { handleCloseDatabaseConnections, logger, formatDate } from "@/lib/core/helper";
 import { verifyAccountAccess } from "@/lib/core/validation";
 import { DataReturnObject } from "@/types/helper";
@@ -69,7 +69,7 @@ export async function getTicketsForOptions(userId: number, accountId: number): P
     }
 }
 
-export async function getTicketById(userId: number, accountId: number, ticketId: number): Promise<DataReturnObject<{title: string, description: string, status: string, assigned_to_user_id: number | null}>> {
+export async function getTicketById(userId: number, accountId: number, ticketId: number): Promise<DataReturnObject<{title: string, description: string, status: string, assigned_to_team_id: number, assigned_to_user_id: number | null}>> {
 
     let dbClient: DatabaseClient | null = null;
 
@@ -107,9 +107,10 @@ export async function getTicketById(userId: number, accountId: number, ticketId:
         const ticketTitle = ticketResult.data.title;
         const ticketDescription = ticketResult.data.description;
         const ticketStatus = ticketResult.data.status;
-        const assignedToUserId = ticketResult.data.assigned_to_user_id as number;
+        const assignedToTeamId = ticketResult.data.assigned_to_team_id as number;
+        const assignedToUserId = ticketResult.data.assigned_to_user_id as number | null;
 
-        if(typeof ticketTitle !== 'string' || typeof ticketDescription !== 'string' || typeof ticketStatus !== 'string') {
+        if(typeof ticketTitle !== 'string' || typeof ticketDescription !== 'string' || typeof ticketStatus !== 'string' || typeof assignedToTeamId !== 'number') {
             return {
                 status: false,
                 data: null,
@@ -123,6 +124,7 @@ export async function getTicketById(userId: number, accountId: number, ticketId:
                 title: ticketTitle,
                 description: ticketDescription,
                 status: ticketStatus,
+                assigned_to_team_id: assignedToTeamId,
                 assigned_to_user_id: assignedToUserId
             },
             message: 'Ticket retrieved successfully'
@@ -140,7 +142,7 @@ export async function getTicketById(userId: number, accountId: number, ticketId:
     }
 }
 
-export async function getTickets(accountId: number): Promise<DataReturnObject<{id: number, title: string, description: string, status: string, assigned_to_user_id: number | null}[]>> {
+export async function getTickets(accountId: number): Promise<DataReturnObject<{id: number, title: string, description: string, status: string, assigned_to_team_id: number, assigned_to_user_id: number | null}[]>> {
 
     let dbClient: DatabaseClient | null = null;
 
@@ -168,7 +170,7 @@ export async function getTickets(accountId: number): Promise<DataReturnObject<{i
 
         return {
             status: true,
-            data: getTicketsResult.data as {id: number, title: string, description: string, status: string, assigned_to_user_id: number | null}[],
+            data: getTicketsResult.data as {id: number, title: string, description: string, status: string, assigned_to_team_id: number, assigned_to_user_id: number | null}[],
             message: 'Tickets retrieved successfully'
         };
 
@@ -210,16 +212,16 @@ export async function getAllTickets(userId: number, accountId: number): Promise<
             };
         }
 
-        const ticketsQuery = await dbClient.query(
-            `SELECT * FROM ticket 
-             WHERE account_id = $1 
-             ORDER BY 
-                 CASE WHEN status = 'In Progress' THEN 0 ELSE 1 END,
-                 created_at DESC`,
-            [accountId]
-        );
+        const orderedTicketsResult = await getTicketsByAccountOrdered(dbClient, accountId);
+        if(!orderedTicketsResult.status || !orderedTicketsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: orderedTicketsResult.message
+            };
+        }
 
-        const tickets = ticketsQuery.rows || [];
+        const tickets = orderedTicketsResult.data;
 
         if(tickets.length === 0) {
             return {
@@ -249,10 +251,9 @@ export async function getAllTickets(userId: number, accountId: number): Promise<
             return [
                 ticket.id.toString(),
                 ticket.title,
-                ticket.description,
                 ticket.status,
-                assignedUserName,
                 createdByName,
+                assignedUserName,
                 await formatDate(ticket.updated_at),
                 await formatDate(ticket.created_at)
             ];
@@ -276,7 +277,7 @@ export async function getAllTickets(userId: number, accountId: number): Promise<
     }
 }
 
-export async function createTicket(userId: number, accountId: number, title: string, description: string, status: string, assignedToUserId: number | null): Promise<DataReturnObject<boolean>> {
+export async function createTicket(userId: number, accountId: number, title: string, description: string, status: string, assignedToTeamId: number, assignedToUserId: number | null): Promise<DataReturnObject<boolean>> {
 
     let dbClient: DatabaseClient | null = null;
 
@@ -302,17 +303,22 @@ export async function createTicket(userId: number, accountId: number, title: str
             };
         }
 
+        const teamCheck = await teamExistsInAccount(dbClient, assignedToTeamId, accountId);
+        if(!teamCheck.status || !teamCheck.data) {
+            return {
+                status: false,
+                data: null,
+                message: teamCheck.message ?? 'Assigned team does not belong to this account'
+            };
+        }
+
         if(assignedToUserId !== null) {
-            const userAccountQuery = await dbClient.query(
-                `SELECT * FROM user_account WHERE user_id = $1 AND account_id = $2`,
-                [assignedToUserId, accountId]
-            );
-            
-            if(!userAccountQuery.rows || userAccountQuery.rows.length === 0) {
+            const userAccountCheck = await userAccountExists(dbClient, assignedToUserId, accountId);
+            if(!userAccountCheck.status || !userAccountCheck.data) {
                 return {
                     status: false,
                     data: null,
-                    message: 'Assigned user does not belong to this account'
+                    message: userAccountCheck.message ?? 'Assigned user does not belong to this account'
                 };
             }
         }
@@ -320,8 +326,8 @@ export async function createTicket(userId: number, accountId: number, title: str
         const createTicketResult = await dynamicSendData(
             dbClient,
             'ticket',
-            ['title', 'description', 'status', 'created_by_user_id', 'assigned_to_user_id', 'account_id'],
-            [title, description, status, userId, assignedToUserId, accountId]
+            ['title', 'description', 'status', 'created_by_user_id', 'assigned_to_team_id', 'assigned_to_user_id', 'account_id'],
+            [title, description, status, userId, assignedToTeamId, assignedToUserId, accountId]
         );
         if(!createTicketResult.status || !createTicketResult.data) {
             return {
@@ -349,7 +355,7 @@ export async function createTicket(userId: number, accountId: number, title: str
     }
 }
 
-export async function updateTicket(userId: number, accountId: number, ticketId: number, title?: string, description?: string, status?: string, assignedToUserId?: number | null): Promise<DataReturnObject<boolean>> {
+export async function updateTicket(userId: number, accountId: number, ticketId: number, title?: string, description?: string, status?: string, assignedToTeamId?: number, assignedToUserId?: number | null): Promise<DataReturnObject<boolean>> {
 
     let dbClient: DatabaseClient | null = null;
 
@@ -384,25 +390,33 @@ export async function updateTicket(userId: number, accountId: number, ticketId: 
             };
         }
 
-        if(assignedToUserId !== undefined && assignedToUserId !== null) {
-            const userAccountQuery = await dbClient.query(
-                `SELECT * FROM user_account WHERE user_id = $1 AND account_id = $2`,
-                [assignedToUserId, accountId]
-            );
-            
-            if(!userAccountQuery.rows || userAccountQuery.rows.length === 0) {
+        if(assignedToTeamId !== undefined) {
+            const teamCheck = await teamExistsInAccount(dbClient, assignedToTeamId, accountId);
+            if(!teamCheck.status || !teamCheck.data) {
                 return {
                     status: false,
                     data: null,
-                    message: 'Assigned user does not belong to this account'
+                    message: teamCheck.message ?? 'Assigned team does not belong to this account'
                 };
             }
         }
 
-        const updateData: { title?: string; description?: string; status?: string; assigned_to_user_id?: number | null } = {};
+        if(assignedToUserId !== undefined && assignedToUserId !== null) {
+            const userAccountCheck = await userAccountExists(dbClient, assignedToUserId, accountId);
+            if(!userAccountCheck.status || !userAccountCheck.data) {
+                return {
+                    status: false,
+                    data: null,
+                    message: userAccountCheck.message ?? 'Assigned user does not belong to this account'
+                };
+            }
+        }
+
+        const updateData: { title?: string; description?: string; status?: string; assigned_to_team_id?: number; assigned_to_user_id?: number | null } = {};
         if(title !== undefined) updateData.title = title;
         if(description !== undefined) updateData.description = description;
         if(status !== undefined) updateData.status = status;
+        if(assignedToTeamId !== undefined) updateData.assigned_to_team_id = assignedToTeamId;
         if(assignedToUserId !== undefined) updateData.assigned_to_user_id = assignedToUserId;
 
         if(Object.keys(updateData).length === 0) {

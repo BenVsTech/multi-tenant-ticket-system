@@ -9,12 +9,25 @@ import DataManagement from "@/components/dataManagement";
 import DeleteMyData from "./deleteMyData";
 import ErrorPopup from "./errorPopup";
 import Comment from "@/components/comment";
+import Performance from "./performance";
+import MyTicket from "./myTicket";
 import { reportProblemForm } from "@/utils/form/reportProblem";
 import { accountForm } from "@/utils/form/account";
 import { userForm } from "@/utils/form/user";
 import { teamForm } from "@/utils/form/team";
 import { ticketForm } from "@/utils/form/ticket";
 import { ReportProblemFormData } from "@/types/component";
+
+// Functions
+
+function notAuthorized() {
+    return (
+        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
+            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
+            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
+        </div>
+    )
+}
 
 // Exports
 
@@ -40,19 +53,24 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 );
                 break;
             case "my-tickets":
-                setContent(<div>This is the my tickets section where you can view your tickets</div>);
+                if(!setup.accountId) {
+                    setContent(notAuthorized());
+                    break;
+                }
+
+                setContent(<MyTicket setup={{ accountId: setup.accountId }} />);
                 break;
             case "performance":
-                setContent(<div>This is the performance section where you can view the performance of teams and employeees</div>);
+                if(!setup.accountId) {
+                    setContent(notAuthorized());
+                    break;
+                }
+
+                setContent(<Performance setup={{ accountId: setup.accountId }} />);
                 break;
             case "teams":
                 if(!setup.accountId) {
-                    setContent(
-                        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
-                            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
-                            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
-                        </div>
-                    );
+                    setContent(notAuthorized());
                     break;
                 }
 
@@ -65,7 +83,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             createText: 'Create Team', 
                             deleteStatus: true, 
                             form: teamForm, 
-                            headers: ['ID', 'Name', 'Description', 'Last Updated', 'Created On'], 
+                            headers: ['ID', 'Name', 'Last Updated', 'Created On'], 
                             api: '/api/teams',
                             accessStatus: true,
                             access: {
@@ -80,12 +98,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 break;
             case "tickets":
                 if(!setup.accountId) {
-                    setContent(
-                        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
-                            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
-                            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
-                        </div>
-                    );
+                    setContent(notAuthorized());
                     break;
                 }
 
@@ -98,7 +111,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             createText: 'Create Ticket', 
                             deleteStatus: true, 
                             form: ticketForm, 
-                            headers: ['ID', 'Title', 'Description', 'Status', 'Created By', 'Assigned To', 'Last Updated', 'Created On'], 
+                            headers: ['ID', 'Title', 'Status', 'Created By', 'Assigned To', 'Last Updated', 'Created On'], 
                             api: '/api/tickets',
                             accessStatus: true,
                             access: {
@@ -113,12 +126,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 break;
             case "comments":
                 if(!setup.accountId) {
-                    setContent(
-                        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
-                            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
-                            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
-                        </div>
-                    );
+                    setContent(notAuthorized());
                     break;
                 }
 
@@ -126,12 +134,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                 break;
             case "user-management":
                 if(!setup.accountId) {
-                    setContent(
-                        <div className={`${styles['width-100']} ${styles['height-100']} ${styles['column-container']} ${styles['content-start']} ${styles['align-start']} ${styles['gap-10']}`}>
-                            <h1 className={`${styles['title-text']} ${styles['text-left']}`}>You are not authorized to access this section</h1>
-                            <p className={`${styles['text-left']}`}>Please select an account from the dropdown menu above.</p>
-                        </div>
-                    );
+                    setContent(notAuthorized());
                     break;
                 }
 
@@ -180,7 +183,7 @@ export default function RenderSection({ setup }: RenderSectionProps) {
                             createText: 'Create Account', 
                             deleteStatus: true, 
                             form: accountForm, 
-                            headers: ['ID', 'Name', 'Description', 'Last Updated', 'Created On'], 
+                            headers: ['ID', 'Name', 'Last Updated', 'Created On'], 
                             api: '/api/accounts',
                             accessStatus: false,
                             access: null

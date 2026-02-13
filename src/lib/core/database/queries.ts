@@ -7,6 +7,8 @@ import { DatabaseConfiguration, DatabaseTable } from "@/types/database";
 import { validateIdentifierOrError, validateColumnTypeOrError, validateForeignKeyConstraintOrError, validateUniqueConstraintOrError, validateTenantTable, escapeIdentifier } from "../validation";
 import { logger } from "../helper";
 import { UserAccountRow, RolePermissionRow, DatabaseRow, UserRow, AccountRow, RoleRow, PermissionRow } from "@/types/component";
+import { TeamPerformanceData, PieSlice, PerformanceApiData } from "@/types/component";
+import { statusColors, teamColors, statusOrder } from "@/utils/constants";
 
 // Functions
 
@@ -892,6 +894,217 @@ export async function deleteRowById(client: DatabaseClient, table: string, id: n
     }
 }
 
+export async function teamExistsInAccount(client: DatabaseClient, teamId: number, accountId: number): Promise<DataReturnObject<boolean>> {
+    try {
+        const result = await client.query(
+            `SELECT id FROM team WHERE id = $1 AND account_id = $2`,
+            [teamId, accountId]
+        );
+        return {
+            status: true,
+            data: result.rows.length > 0,
+            message: result.rows.length > 0 ? 'Team exists in account' : 'Team not found in account'
+        };
+    } catch (error: unknown) {
+        logger.error('teamExistsInAccount', error, { teamId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function userAccountExists(client: DatabaseClient, userId: number, accountId: number): Promise<DataReturnObject<boolean>> {
+    try {
+        const result = await client.query(
+            `SELECT id FROM user_account WHERE user_id = $1 AND account_id = $2`,
+            [userId, accountId]
+        );
+        return {
+            status: true,
+            data: result.rows.length > 0,
+            message: result.rows.length > 0 ? 'User account exists' : 'User account not found'
+        };
+    } catch (error: unknown) {
+        logger.error('userAccountExists', error, { userId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getTicketsByAccountOrdered(client: DatabaseClient, accountId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM ticket WHERE account_id = $1 ORDER BY CASE WHEN status = 'In Progress' THEN 0 ELSE 1 END, created_at DESC`,
+            [accountId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Tickets retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getTicketsByAccountOrdered', error, { accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getTeamIdForUserInAccount(client: DatabaseClient, userId: number, accountId: number): Promise<DataReturnObject<number | null>> {
+    try {
+        const result = await client.query(
+            `SELECT team_id FROM user_account WHERE user_id = $1 AND account_id = $2`,
+            [userId, accountId]
+        );
+        const teamId = result.rows[0]?.team_id ?? null;
+        return {
+            status: true,
+            data: teamId,
+            message: 'User team retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getTeamIdForUserInAccount', error, { userId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getOpenTicketsForTeam(client: DatabaseClient, accountId: number, teamId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM ticket WHERE account_id = $1 AND assigned_to_team_id = $2 AND status = 'Unassigned' ORDER BY created_at DESC`,
+            [accountId, teamId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Open tickets retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getOpenTicketsForTeam', error, { accountId, teamId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getTicketsCreatedByUser(client: DatabaseClient, accountId: number, userId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM ticket WHERE account_id = $1 AND created_by_user_id = $2 ORDER BY created_at DESC`,
+            [accountId, userId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Created tickets retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getTicketsCreatedByUser', error, { accountId, userId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getTicketsAssignedToUser(client: DatabaseClient, accountId: number, userId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM ticket WHERE account_id = $1 AND assigned_to_user_id = $2 ORDER BY created_at DESC`,
+            [accountId, userId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Assigned tickets retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getTicketsAssignedToUser', error, { accountId, userId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getCommentsByTicketAndAccount(client: DatabaseClient, ticketId: number, accountId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM comment WHERE ticket_id = $1 AND account_id = $2 ORDER BY created_at DESC`,
+            [ticketId, accountId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'Comments retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getCommentsByTicketAndAccount', error, { ticketId, accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getUserAccountsByAccount(client: DatabaseClient, accountId: number): Promise<DataReturnObject<DatabaseRow[]>> {
+    try {
+        const result = await client.query(
+            `SELECT * FROM user_account WHERE account_id = $1 ORDER BY created_at DESC`,
+            [accountId]
+        );
+        return {
+            status: true,
+            data: result.rows,
+            message: 'User accounts retrieved successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('getUserAccountsByAccount', error, { accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function deleteUserAccountsByUserId(client: DatabaseClient, userId: number): Promise<DataReturnObject<boolean>> {
+    try {
+        const result = await client.query(
+            `DELETE FROM user_account WHERE user_id = $1`,
+            [userId]
+        );
+        return {
+            status: true,
+            data: true,
+            message: 'User accounts deleted successfully'
+        };
+    } catch (error: unknown) {
+        logger.error('deleteUserAccountsByUserId', error, { userId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
 export async function deleteCommentsByTicketId(client: DatabaseClient, accountId: number, ticketId: number): Promise<DataReturnObject<boolean>> {
     try {
         const tableValidationError = validateIdentifierOrError<boolean>('comment', 'table');
@@ -949,7 +1162,6 @@ export async function getStringRowsAccounts(client: DatabaseClient, userId: numb
             return [
                 row.account_id.toString(), 
                 accountObject.data.name, 
-                accountObject.data.description, 
                 formatDate(row.updated_at), 
                 formatDate(row.created_at)
             ];
@@ -972,6 +1184,192 @@ export async function getStringRowsAccounts(client: DatabaseClient, userId: numb
 
     } catch(error: unknown) {
         logger.error('getStringRowsAccounts', error);
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getUserTeamMappings(client: DatabaseClient, accountId: number): Promise<DataReturnObject<{user_id: number, team_id: number | null}[]>> {
+    try{
+        const escapedTableName = escapeIdentifier('user_account');
+        const queryString = `SELECT user_id, team_id FROM ${escapedTableName} WHERE account_id = $1`;
+
+        const result = await client.query(queryString, [accountId]);
+
+        return {
+            status: true,
+            data: result.rows.map((row: any) => ({
+                user_id: row.user_id,
+                team_id: row.team_id
+            })),
+            message: 'User team mappings retrieved successfully'
+        };
+
+    } catch(error: unknown) {
+        logger.error('getUserTeamMappings', error, { accountId });
+        return {
+            status: false,
+            data: null,
+            message: 'Database operation failed'
+        };
+    }
+}
+
+export async function getPerformanceDataByAccount(client: DatabaseClient, accountId: number): Promise<DataReturnObject<PerformanceApiData>> {
+    try{
+        const teamsResult = await getAllRowsFromTable(client, 'team', accountId);
+        if(!teamsResult.status || !teamsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: teamsResult.message
+            };
+        }
+
+        const teams = teamsResult.data as {id: number, name: string, description: string}[];
+
+        const ticketsResult = await getAllRowsFromTable(client, 'ticket', accountId);
+        if(!ticketsResult.status) {
+            return {
+                status: false,
+                data: null,
+                message: ticketsResult.message
+            };
+        }
+
+        const tickets = (ticketsResult.data || []) as {id: number, status: string, assigned_to_team_id: number | null, assigned_to_user_id: number | null}[];
+
+        const overallStatusCounts: Record<string, number> = {};
+        statusOrder.forEach(status => {
+            overallStatusCounts[status] = 0;
+        });
+
+        tickets.forEach(ticket => {
+            const status = ticket.status || 'Unassigned';
+            overallStatusCounts[status] = (overallStatusCounts[status] || 0) + 1;
+        });
+
+        const userTeamMappingsResult = await getUserTeamMappings(client, accountId);
+        if(!userTeamMappingsResult.status || !userTeamMappingsResult.data) {
+            return {
+                status: false,
+                data: null,
+                message: userTeamMappingsResult.message
+            };
+        }
+
+        const userAccountRows = userTeamMappingsResult.data;
+        
+        const userToTeamMap = new Map<number, number>();
+        userAccountRows.forEach((row) => {
+            if(row.team_id) {
+                userToTeamMap.set(row.user_id, row.team_id);
+            }
+        });
+
+        const teamPerformanceData: TeamPerformanceData[] = [];
+
+        for(let i = 0; i < teams.length; i++) {
+            const team = teams[i];
+            const teamId = team.id;
+            const teamColor = teamColors[i % teamColors.length];
+
+            const teamUserIds = Array.from(userToTeamMap.entries())
+                .filter(([_, tid]) => tid === teamId)
+                .map(([uid, _]) => uid);
+
+            const teamTickets = tickets.filter(ticket => ticket.assigned_to_team_id === teamId);
+
+            const statusCounts: Record<string, number> = {};
+            statusOrder.forEach(status => {
+                statusCounts[status] = 0;
+            });
+
+            teamTickets.forEach(ticket => {
+                const status = ticket.status || 'Unassigned';
+                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            });
+
+            const statusesForChart = Array.from(
+                new Set([
+                    ...statusOrder,
+                    ...Object.keys(statusCounts)
+                ])
+            ).filter(status => status !== 'Archived');
+
+            let statusIdCounter = 1;
+            const ticketData: PieSlice[] = statusesForChart
+                .filter(status => (statusCounts[status] || 0) > 0)
+                .map((status) => ({
+                    id: (statusIdCounter++).toString(),
+                    label: status,
+                    value: statusCounts[status] || 0,
+                    fill: statusColors[status] || '#CCCCCC'
+                }));
+
+            const totalTickets = teamTickets.length;
+
+            teamPerformanceData.push({
+                id: teamId.toString(),
+                label: team.name,
+                value: totalTickets,
+                fill: teamColor,
+                data: ticketData
+            });
+        }
+
+        const unassignedTickets = tickets.filter(ticket => ticket.assigned_to_team_id === null);
+        if(unassignedTickets.length > 0) {
+            const statusCounts: Record<string, number> = {};
+            statusOrder.forEach(status => {
+                statusCounts[status] = 0;
+            });
+
+            unassignedTickets.forEach(ticket => {
+                const status = ticket.status || 'Unassigned';
+                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            });
+
+            const unassignedStatusesForChart = Array.from(
+                new Set([
+                    ...statusOrder,
+                    ...Object.keys(statusCounts)
+                ])
+            ).filter(status => status !== 'Archived');
+
+            let unassignedStatusIdCounter = 1;
+            const ticketData: PieSlice[] = unassignedStatusesForChart
+                .filter(status => (statusCounts[status] || 0) > 0)
+                .map((status) => ({
+                    id: (unassignedStatusIdCounter++).toString(),
+                    label: status,
+                    value: statusCounts[status] || 0,
+                    fill: statusColors[status] || '#CCCCCC'
+                }));
+
+            teamPerformanceData.push({
+                id: 'unassigned',
+                label: 'Unassigned',
+                value: unassignedTickets.length,
+                fill: '#E0E0E0',
+                data: ticketData
+            });
+        }
+
+        return {
+            status: true,
+            data: {
+                teams: teamPerformanceData,
+                totals: overallStatusCounts
+            },
+            message: 'Performance data retrieved successfully'
+        };
+
+    } catch(error: unknown) {
+        logger.error('getPerformanceDataByAccount', error, { accountId });
         return {
             status: false,
             data: null,

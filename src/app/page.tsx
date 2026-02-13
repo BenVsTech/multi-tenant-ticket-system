@@ -137,7 +137,9 @@ export default function Home() {
 
         <li className={`${styles['row-container']} ${styles['content-center']} ${styles['align-center']} ${styles['pd-all-round']}`}><img src="assets/brand.webp" alt="Logo" className={`${styles['icon-structure']}`} /></li>
         <li className={`${styles['pd-all-round']} ${styles['clickable']} ${selectedContent === 'home' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); handleMenuClick('home'); }}>Home</li>
-        <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('ticket.view') && handleMenuClick('my-tickets'); }}>My Tickets</li>
+
+        <li className={`${styles['pd-all-round']} ${permissions.includes('ticket.view') || permissions.includes('ticket.update') || permissions.includes('ticket.delete') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'my-tickets' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); (permissions.includes('ticket.view') || permissions.includes('ticket.create') || permissions.includes('ticket.update') || permissions.includes('ticket.delete')) && handleMenuClick('my-tickets'); }}>My Tickets</li>
+
         <li className={`${styles['pd-all-round']} ${permissions.includes('performance.view') ? styles['clickable'] : styles['un-clickable']} ${selectedContent === 'performance' ? styles['selected'] : ''}`} onClick={(e) => { e.stopPropagation(); permissions.includes('performance.view') && handleMenuClick('performance'); }}>Performance</li>
 
         <li className={`${styles['pd-all-round']} ${permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view') ? styles['clickable'] : styles['un-clickable']}`} onClick={(e) => { e.stopPropagation(); (permissions.includes('team.view') || permissions.includes('ticket.view') || permissions.includes('comment.view')) && handleSectionToggle('management'); }}>Management</li>

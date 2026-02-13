@@ -339,8 +339,12 @@ export const databaseConfiguration: DatabaseConfiguration = {
                     type: databaseConstants.integer,
                 },
                 {
-                    name: 'assigned_to_user_id',
+                    name: 'assigned_to_team_id',
                     type: databaseConstants.integer,
+                },
+                {
+                    name: 'assigned_to_user_id',
+                    type: databaseConstants.integerNullable,
                 },
                 {
                     name: 'account_id',
@@ -357,7 +361,8 @@ export const databaseConfiguration: DatabaseConfiguration = {
             ],
             foreignKeys: `
                 FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_to_team_id) REFERENCES team(id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE SET NULL,
                 FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
             `,
             uniqueConstraints: '',
